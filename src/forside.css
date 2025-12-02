@@ -1,0 +1,187 @@
+/* ===== Global layout ===== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fyll hele vinduet og midtstill innholdet */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #e5e7eb !important; /* lys grå bakgrunn, overstyrer Vite sin mørke */
+  display: flex;
+  justify-content: center;  /* horisontalt sentrum */
+  align-items: center;      /* vertikalt sentrum */
+}
+
+/* Ytre container for appen (den grå "siden") */
+.forside-root {
+  width: 100%;
+  max-width: 480px;         /* mobilbredde på store skjermer */
+  min-height: 90vh;
+  background: #ededed;      /* samme som i Figma-prototypen */
+  border-radius: 24px;
+  padding: 32px 20px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Selve innholdet inni siden */
+.phone-frame {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Header / logo ===== */
+
+.forside-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.logo-box {
+  width: 110px;
+  height: 110px;
+  border-radius: 24px;
+  background: #5a97de; /* blå firkant */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-letter {
+  color: #ffffff;
+  font-size: 56px;
+  font-weight: 600;
+}
+
+/* ===== Main content ===== */
+
+.forside-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Velkommen-tekst */
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #111111;
+}
+
+.welcome-brand {
+  font-weight: 700;
+}
+
+/* ===== Registreringskortet ===== */
+
+.card {
+  width: 100%;
+  max-width: 340px;
+  background: #5a97de; /* samme blå som logo-boksen */
+  border-radius: 24px;
+  padding: 24px 20px 26px;
+  text-align: center;
+  color: #ffffff;
+  margin-top: auto; /* skyver kortet litt ned på siden */
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.card-text {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.95;
+  margin-bottom: 18px;
+}
+
+/* Skjemaet inni kortet */
+
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.code-input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  text-align: center;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.code-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Registrer-knappen */
+
+.primary-button {
+  width: 65%;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  background: #0040ff; /* mørkere blå knapp */
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 64, 255, 0.45);
+  transition: background 0.16s ease, transform 0.1s ease,
+    box-shadow 0.16s ease;
+}
+
+.primary-button:hover {
+  background: #0033c4;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 51, 196, 0.6);
+}
+
+.primary-button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(0, 51, 196, 0.5);
+}
+
+/* Litt tettere på veldig små mobiler */
+@media (max-width: 380px) {
+  .forside-root {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .welcome-section {
+    margin-bottom: 48px;
+  }
+}
