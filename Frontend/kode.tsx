@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import "./TryggInnWelcome.css";
 
 export default function TryggInnWelcome() {
   const [code, setCode] = useState("");
