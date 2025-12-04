@@ -1,4 +1,4 @@
-/* ===== Ansatt-dashboard – egen styling ===== */
+/* ===== Ansatt-dashboard – layout ===== */
 
 .staff-header {
   display: flex;
@@ -160,12 +160,12 @@
 }
 
 .staff-presence-toggle--in {
-  background: #ef4444;
+  background: #ef4444; /* rød – "sjekk ut" */
   color: #ffffff;
 }
 
 .staff-presence-toggle--out {
-  background: #16a34a;
+  background: #16a34a; /* grønn – "sjekk inn" */
   color: #ffffff;
 }
 
