@@ -1,7 +1,11 @@
 import { useState, type FormEvent } from "react";
 import "./forside.css";
 
-const Forside = () => {
+interface ForsideProps {
+  onBarnehageRegistrert: () => void;
+}
+
+const Forside = ({ onBarnehageRegistrert }: ForsideProps) => {
   const [kode, setKode] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
@@ -12,8 +16,9 @@ const Forside = () => {
       return;
     }
 
-    alert(`Du forsøker å registrere barnehage med kode: ${kode}`);
-    // TODO: naviger videre senere
+    // Her kan dere senere sjekke koden mot backend
+    // f.eks. await api.validateKindergartenCode(kode)
+    onBarnehageRegistrert();
   };
 
   return (
