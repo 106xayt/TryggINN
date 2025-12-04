@@ -51,6 +51,12 @@ export interface Child {
   note?: string; // status-tekst som vises på kortet
 }
 
+interface ParentProfile {
+  name: string;
+  email: string;
+  phone: string;
+}
+
 interface ParentDashboardProps {
   parentName: string;
   onLogout: () => void;
@@ -612,9 +618,355 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
   );
 };
 
+/* ========= Profil-side for foresatt ========= */
+
+interface ProfilePageProps {
+  parentProfile: ParentProfile;
+  onUpdateParentProfile: (profile: ParentProfile) => void;
+  children: Child[];
+  onUpdateChildren: (children: Child[]) => void;
+  onBack: () => void;
+  onPasswordReset: (newPassword: string) => void;
+}
+
+const ProfilePage = ({
+  parentProfile,
+  onUpdateParentProfile,
+  children,
+  onUpdateChildren,
+  onBack,
+  onPasswordReset,
+}: ProfilePageProps) => {
+  const [localParent, setLocalParent] = useState<ParentProfile>(parentProfile);
+  const [localChildren, setLocalChildren] = useState<Child[]>(children);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // hvilke seksjoner som er åpne
+  const [openSections, setOpenSections] = useState<{
+    parent: boolean;
+    password: boolean;
+    children: boolean;
+  }>({
+    parent: true,
+    password: false,
+    children: false,
+  });
+
+  useEffect(() => {
+    setLocalParent(parentProfile);
+  }, [parentProfile]);
+
+  useEffect(() => {
+    setLocalChildren(children);
+  }, [children]);
+
+  const toggleSection = (key: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleChildChange = (
+    index: number,
+    field: keyof Child,
+    value: string
+  ) => {
+    setLocalChildren((prev) => {
+      const copy = [...prev];
+      const child = { ...copy[index] };
+      if (field === "name") {
+        child.name = value;
+      } else if (field === "allergies") {
+        child.allergies = value || undefined;
+      } else if (field === "department") {
+        child.department = value || undefined;
+      } else if (field === "otherInfo") {
+        child.otherInfo = value || undefined;
+      } else if (field === "photoUrl") {
+        child.photoUrl = value || undefined;
+      }
+      copy[index] = child;
+      return copy;
+    });
+  };
+
+  const handleSaveProfile = () => {
+    onUpdateParentProfile(localParent);
+    onUpdateChildren(localChildren);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      alert("Fyll inn begge passordfeltene.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("Passordene er ikke like.");
+      return;
+    }
+    // Klar for backend-integrasjon:
+    onPasswordReset(newPassword);
+    alert(
+      "I denne demoen lagres ikke passordet ennå. Dette kobles til backend senere."
+    );
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  return (
+    <section className="profile-page">
+      <h1 className="profile-title">Min profil</h1>
+
+      {/* Foresatt-info */}
+      <div className="profile-section">
+        <button
+          type="button"
+          className="profile-section-header"
+          onClick={() => toggleSection("parent")}
+        >
+          <span className="profile-section-title">Foresatt</span>
+          <span
+            className={`profile-section-arrow ${
+              openSections.parent ? "profile-section-arrow--open" : ""
+            }`}
+          >
+            ▾
+          </span>
+        </button>
+
+        {openSections.parent && (
+          <div className="profile-section-body">
+            <div className="form-field">
+              <label className="form-label">Navn</label>
+              <input
+                type="text"
+                className="text-input"
+                value={localParent.name}
+                onChange={(e) =>
+                  setLocalParent((p) => ({ ...p, name: e.target.value }))
+                }
+                placeholder="Ditt navn"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">E-post</label>
+              <input
+                type="email"
+                className="text-input"
+                value={localParent.email}
+                onChange={(e) =>
+                  setLocalParent((p) => ({ ...p, email: e.target.value }))
+                }
+                placeholder="din.epost@eksempel.no"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Telefonnummer</label>
+              <input
+                type="tel"
+                className="text-input"
+                value={localParent.phone}
+                onChange={(e) =>
+                  setLocalParent((p) => ({ ...p, phone: e.target.value }))
+                }
+                placeholder="F.eks. 900 00 000"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Passordseksjon */}
+      <div className="profile-section">
+        <button
+          type="button"
+          className="profile-section-header"
+          onClick={() => toggleSection("password")}
+        >
+          <span className="profile-section-title">Passord</span>
+          <span
+            className={`profile-section-arrow ${
+              openSections.password ? "profile-section-arrow--open" : ""
+            }`}
+          >
+            ▾
+          </span>
+        </button>
+
+        {openSections.password && (
+          <div className="profile-section-body">
+            <p className="profile-section-hint">
+              Her kan du be om å sette nytt passord. Selve lagringen kobles mot
+              barnehagens system senere.
+            </p>
+
+            <div className="form-field">
+              <label className="form-label">Nytt passord</label>
+              <input
+                type="password"
+                className="text-input"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Gjenta nytt passord</label>
+              <input
+                type="password"
+                className="text-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="secondary-button full-width-secondary profile-password-button"
+              onClick={handlePasswordSubmit}
+            >
+              Reset passord
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Barn-info */}
+      <div className="profile-section">
+        <button
+          type="button"
+          className="profile-section-header"
+          onClick={() => toggleSection("children")}
+        >
+          <span className="profile-section-title">
+            Barn ({localChildren.length})
+          </span>
+          <span
+            className={`profile-section-arrow ${
+              openSections.children ? "profile-section-arrow--open" : ""
+            }`}
+          >
+            ▾
+          </span>
+        </button>
+
+        {openSections.children && (
+          <div className="profile-section-body">
+            {localChildren.length === 0 ? (
+              <p className="profile-section-hint">
+                Du har ingen registrerte barn enda. Legg til barn fra
+                hovedsiden.
+              </p>
+            ) : (
+              <div className="profile-children-list">
+                {localChildren.map((child, index) => (
+                  <div key={child.id} className="profile-child-card">
+                    <p className="profile-child-title">{child.name}</p>
+
+                    <div className="form-field">
+                      <label className="form-label">Navn</label>
+                      <input
+                        type="text"
+                        className="text-input"
+                        value={child.name}
+                        onChange={(e) =>
+                          handleChildChange(index, "name", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-label">Lenke til bilde</label>
+                      <input
+                        type="url"
+                        className="text-input"
+                        value={child.photoUrl ?? ""}
+                        onChange={(e) =>
+                          handleChildChange(index, "photoUrl", e.target.value)
+                        }
+                        placeholder="https://…"
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-label">Allergier</label>
+                      <input
+                        type="text"
+                        className="text-input"
+                        value={child.allergies ?? ""}
+                        onChange={(e) =>
+                          handleChildChange(index, "allergies", e.target.value)
+                        }
+                        placeholder="F.eks. nøtter, melk, pollen"
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-label">Avdeling</label>
+                      <input
+                        type="text"
+                        className="text-input"
+                        value={child.department ?? ""}
+                        onChange={(e) =>
+                          handleChildChange(index, "department", e.target.value)
+                        }
+                        placeholder="F.eks. Rød, Blå, Løvene"
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label className="form-label">Annet</label>
+                      <input
+                        type="text"
+                        className="text-input"
+                        value={child.otherInfo ?? ""}
+                        onChange={(e) =>
+                          handleChildChange(index, "otherInfo", e.target.value)
+                        }
+                        placeholder="Henting, språk, spesielle beskjeder..."
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="login-button profile-save-button"
+        onClick={handleSaveProfile}
+>
+        Lagre endringer
+    </button>
+
+    <button
+        type="button"
+        className="secondary-button profile-back-button"
+        onClick={onBack}
+>
+        Tilbake til &quot;Dine barn&quot;
+    </button>
+
+    </section>
+  );
+};
+
 /* ========= Selve dashboardet ========= */
 
-type ActiveView = "list" | "info" | "checkIn" | "gallery" | "calendar";
+type ActiveView =
+  | "list"
+  | "info"
+  | "checkIn"
+  | "gallery"
+  | "calendar"
+  | "profile";
 
 interface CheckInSuccessData {
   childName: string;
@@ -648,11 +1000,15 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
   const [checkInSuccess, setCheckInSuccess] =
     useState<CheckInSuccessData | null>(null);
 
+  // Profilinfo foresatt
+  const [parentProfile, setParentProfile] = useState<ParentProfile>({
+    name: parentName,
+    email: "",
+    phone: "",
+  });
+
   useEffect(() => {
-    // Her kan backend kobles på senere, f.eks:
-    // api.getChildrenForParent().then(setChildren);
-    // api.getDailyReminder().then(setTodayReminder);
-    // api.getKindergartenCalendar().then(setCalendarEvents);
+    // Her kan backend kobles på senere
   }, []);
 
   const toggleCheckStatusDirect = (id: number) => {
@@ -885,6 +1241,24 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
     }
   };
 
+  const openProfile = () => {
+    setActiveView("profile");
+  };
+
+  const handleUpdateParentProfile = (profile: ParentProfile) => {
+    setParentProfile(profile);
+  };
+
+  const handleUpdateChildrenFromProfile = (updatedChildren: Child[]) => {
+    setChildren(updatedChildren);
+  };
+
+  const handlePasswordReset = (newPassword: string) => {
+    console.log("Ønsket nytt passord:", newPassword);
+  };
+
+  const displayName = parentProfile.name || parentName;
+
   return (
     <div className="forside-root">
       <div className="phone-frame">
@@ -905,6 +1279,17 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
         >
           {activeView === "calendar" && (
             <CalendarPage events={calendarEvents} onBack={backFromCalendar} />
+          )}
+
+          {activeView === "profile" && (
+            <ProfilePage
+              parentProfile={parentProfile}
+              onUpdateParentProfile={handleUpdateParentProfile}
+              children={children}
+              onUpdateChildren={handleUpdateChildrenFromProfile}
+              onBack={backToList}
+              onPasswordReset={handlePasswordReset}
+            />
           )}
 
           {activeChild && activeView === "info" && (
@@ -934,7 +1319,16 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
           {!activeChild && activeView === "list" && (
             <>
               <section className="dashboard-greeting">
-                <h1 className="dashboard-title">Hei {parentName}!</h1>
+                <div className="dashboard-greeting-row">
+                  <h1 className="dashboard-title">Hei {displayName}!</h1>
+                  <button
+                    type="button"
+                    className="profile-link-button"
+                    onClick={openProfile}
+                  >
+                    Min profil
+                  </button>
+                </div>
               </section>
 
               <section className="dashboard-section">
@@ -1187,6 +1581,8 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
 };
 
 export default ParentDashboard;
+
+
 
 
 
