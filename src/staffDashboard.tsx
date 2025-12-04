@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import "./forside.css";
-import "./parentsDashboard.css"; // vi gjenbruker styling + utvider den for ansatte
+import { useState } from "react";
+import "./forside.css";          // ramme / base-layout
+import "./staffDashboard.css";   // KUN styling for ansatt-dashbord
 
 type PresenceStatus = "in" | "out";
 
@@ -31,50 +31,36 @@ interface StaffDashboardProps {
   onLogout: () => void;
 }
 
+// Demo-data (kan fjernes når backend kobles på)
+const demoDepartments: Department[] = [
+  { id: 1, name: "Lillebjørn" },
+  { id: 2, name: "Månebarna" },
+];
+
+const demoChildren: PresenceChild[] = [
+  {
+    id: 1,
+    name: "Oliver Nordmann",
+    departmentId: 1,
+    departmentName: "Lillebjørn",
+    status: "out",
+    lastChange: undefined,
+  },
+  {
+    id: 2,
+    name: "Emma Nordmann",
+    departmentId: 2,
+    departmentName: "Månebarna",
+    status: "in",
+    lastChange: "07:45",
+  },
+];
+
 const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
-  // Avdelinger (klar for backend)
-  const [departments, setDepartments] = useState<Department[]>([]);
-
-  // Barn med tilstede-status per avdeling (klar for backend)
-  const [children, setChildren] = useState<PresenceChild[]>([]);
-
-  // Liste over inn/ut-hendelser (livelog)
+  // 👉 Disse kan senere erstattes med data fra API
+  const [departments] = useState<Department[]>(() => demoDepartments);
+  const [children, setChildren] = useState<PresenceChild[]>(() => demoChildren);
   const [checkLog, setCheckLog] = useState<CheckLogItem[]>([]);
-
-  useEffect(() => {
-    // 👉 Her kan backend kobles på senere.
-    // F.eks:
-    // api.getDepartments().then(setDepartments);
-    // api.getPresenceToday().then(setChildren);
-
-    // Midlertidige demo-data:
-    const demoDepartments: Department[] = [
-      { id: 1, name: "Lillebjørn" },
-      { id: 2, name: "Månebarna" },
-    ];
-
-    const demoChildren: PresenceChild[] = [
-      {
-        id: 1,
-        name: "Oliver Nordmann",
-        departmentId: 1,
-        departmentName: "Lillebjørn",
-        status: "out",
-        lastChange: undefined,
-      },
-      {
-        id: 2,
-        name: "Emma Nordmann",
-        departmentId: 2,
-        departmentName: "Månebarna",
-        status: "in",
-        lastChange: "07:45",
-      },
-    ];
-
-    setDepartments(demoDepartments);
-    setChildren(demoChildren);
-  }, []);
 
   const nowTime = () =>
     new Date().toLocaleTimeString("nb-NO", {
@@ -84,14 +70,14 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
 
   const togglePresence = (childId: number) => {
     setChildren((prevChildren) => {
-      const updated = prevChildren.map((child) => {
+      return prevChildren.map((child) => {
         if (child.id !== childId) return child;
 
         const newStatus: PresenceStatus =
           child.status === "in" ? "out" : "in";
         const time = nowTime();
 
-        // legg inn ny logg-entry
+        // 👉 logg hendelse øverst i listen
         setCheckLog((prevLog) => [
           {
             id: Date.now(),
@@ -100,8 +86,11 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
             action: newStatus,
             time,
           },
-          ...prevLog, // nyeste først
+          ...prevLog,
         ]);
+
+        // 👉 her kan backend oppdateres senere:
+        // api.updatePresence(child.id, newStatus)
 
         return {
           ...child,
@@ -109,11 +98,6 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
           lastChange: time,
         };
       });
-
-      // 👉 Her kan backend oppdateres senere, f.eks:
-      // api.updatePresenceForChild(childId, newStatus);
-
-      return updated;
     });
   };
 
@@ -123,63 +107,63 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
   return (
     <div className="forside-root">
       <div className="phone-frame">
-        <header className="dashboard-header">
-          <div className="dashboard-brand">
-            <div className="avatar-circle">T</div>
-            <span className="brand-text">TryggINN</span>
+        <header className="staff-header">
+          <div className="staff-brand">
+            <div className="staff-avatar">T</div>
+            <span className="staff-brand-text">TryggINN</span>
           </div>
-          <button className="text-link-button" onClick={onLogout}>
+          <button className="staff-link-button" onClick={onLogout}>
             Logg ut
           </button>
         </header>
 
-        <main className="dashboard-main">
+        <main className="staff-main">
           {/* Topptekst */}
-          <section className="dashboard-greeting">
-            <h1 className="dashboard-title">Hei {staffName}!</h1>
-            <p className="dashboard-empty-text">
-              Her kan du se tilstedeværelse per avdeling og en live-liste over
+          <section className="staff-greeting">
+            <h1 className="staff-title">Hei {staffName}!</h1>
+            <p className="staff-intro">
+              Her ser du tilstedeværelse per avdeling og en live-liste over
               inn- og utsjekk i dag.
             </p>
           </section>
 
           {/* Sjekkliste per avdeling */}
-          <section className="dashboard-section">
-            <h2 className="dashboard-section-title">Avdelinger</h2>
+          <section className="staff-section">
+            <h2 className="staff-section-title">Avdelinger</h2>
 
             {departments.length === 0 ? (
-              <p className="dashboard-empty-text">
+              <p className="staff-empty-text">
                 Ingen avdelinger registrert ennå.
               </p>
             ) : (
-              <div className="department-list">
+              <div className="staff-department-list">
                 {departments.map((dep) => {
                   const depChildren = getChildrenForDepartment(dep.id);
                   return (
-                    <article key={dep.id} className="department-card">
-                      <header className="department-header">
-                        <h3 className="department-name">{dep.name}</h3>
-                        <span className="department-count">
+                    <article key={dep.id} className="staff-department-card">
+                      <header className="staff-department-header">
+                        <h3 className="staff-department-name">{dep.name}</h3>
+                        <span className="staff-department-count">
                           {depChildren.length} barn
                         </span>
                       </header>
 
                       {depChildren.length === 0 ? (
-                        <p className="department-empty">
+                        <p className="staff-department-empty">
                           Ingen barn registrert på denne avdelingen ennå.
                         </p>
                       ) : (
-                        <ul className="presence-list">
+                        <ul className="staff-presence-list">
                           {depChildren.map((child) => (
                             <li
                               key={child.id}
-                              className="presence-row"
+                              className="staff-presence-row"
                             >
-                              <div className="presence-info">
-                                <span className="presence-name">
+                              <div className="staff-presence-info">
+                                <span className="staff-presence-name">
                                   {child.name}
                                 </span>
-                                <span className="presence-time">
+                                <span className="staff-presence-time">
                                   {child.lastChange
                                     ? `${child.status === "in" ? "Inn" : "Ut"} ${child.lastChange}`
                                     : "Ikke registrert i dag"}
@@ -188,10 +172,10 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
 
                               <button
                                 type="button"
-                                className={`presence-toggle ${
+                                className={`staff-presence-toggle ${
                                   child.status === "in"
-                                    ? "presence-toggle--in"
-                                    : "presence-toggle--out"
+                                    ? "staff-presence-toggle--in"
+                                    : "staff-presence-toggle--out"
                                 }`}
                                 onClick={() => togglePresence(child.id)}
                               >
@@ -211,34 +195,38 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
           </section>
 
           {/* Live inn-/ut-liste */}
-          <section className="dashboard-section">
-            <h2 className="dashboard-section-title">Inn- og utsjekk i dag</h2>
+          <section className="staff-section">
+            <h2 className="staff-section-title">Inn- og utsjekk i dag</h2>
 
             {checkLog.length === 0 ? (
-              <p className="dashboard-empty-text">
+              <p className="staff-empty-text">
                 Ingen registreringer ennå i dag.
               </p>
             ) : (
-              <ul className="checklog-list">
+              <ul className="staff-checklog-list">
                 {checkLog.map((log) => (
-                  <li key={log.id} className="checklog-item">
-                    <div className="checklog-main">
-                      <span className="checklog-name">{log.childName}</span>
-                      <span className="checklog-dep">
+                  <li key={log.id} className="staff-checklog-item">
+                    <div className="staff-checklog-main">
+                      <span className="staff-checklog-name">
+                        {log.childName}
+                      </span>
+                      <span className="staff-checklog-dep">
                         {log.departmentName}
                       </span>
                     </div>
-                    <div className="checklog-meta">
+                    <div className="staff-checklog-meta">
                       <span
-                        className={`checklog-status ${
+                        className={`staff-checklog-status ${
                           log.action === "in"
-                            ? "checklog-status--in"
-                            : "checklog-status--out"
+                            ? "staff-checklog-status--in"
+                            : "staff-checklog-status--out"
                         }`}
                       >
                         {log.action === "in" ? "Inn" : "Ut"}
                       </span>
-                      <span className="checklog-time">{log.time}</span>
+                      <span className="staff-checklog-time">
+                        {log.time}
+                      </span>
                     </div>
                   </li>
                 ))}
@@ -252,4 +240,5 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
 };
 
 export default StaffDashboard;
+
 

@@ -1,0 +1,252 @@
+/* ===== Ansatt-dashboard – egen styling ===== */
+
+.staff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.staff-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #5a97de;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.staff-brand-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.staff-link-button {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.staff-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.staff-greeting {
+  margin-bottom: 4px;
+}
+
+.staff-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.staff-intro {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.staff-section {
+  margin-top: 4px;
+}
+
+.staff-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.staff-empty-text {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Avdelingskort med sjekkliste ===== */
+
+.staff-department-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-department-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.16);
+}
+
+.staff-department-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.staff-department-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.staff-department-count {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.staff-department-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Barn-rader i avdeling */
+
+.staff-presence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.staff-presence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.staff-presence-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.staff-presence-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.staff-presence-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.staff-presence-toggle {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staff-presence-toggle--in {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.staff-presence-toggle--out {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+/* ===== Live inn-/ut-liste ===== */
+
+.staff-checklog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.staff-checklog-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+}
+
+.staff-checklog-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.staff-checklog-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.staff-checklog-dep {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.staff-checklog-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-checklog-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.staff-checklog-status--in {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.staff-checklog-status--out {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.staff-checklog-time {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+/* Liten fade-in når ansatt-dashboard vises */
+
+.phone-frame {
+  animation: staffFadeIn 0.18s ease-out;
+}
+
+@keyframes staffFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
