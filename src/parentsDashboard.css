@@ -38,6 +38,11 @@
   gap: 16px;
 }
 
+.dashboard-main--blurred {
+  filter: blur(2px);
+  pointer-events: none;
+}
+
 .dashboard-greeting {
   margin-bottom: 4px;
 }
@@ -45,7 +50,7 @@
 .dashboard-title {
   font-size: 26px;
   font-weight: 600;
-  color: #111827; /* mørk tekst – god kontrast */
+  color: #111827;
 }
 
 .dashboard-section {
@@ -82,11 +87,11 @@
 }
 
 .child-card--alert {
-  background: #fca5a5; /* lysere rød for bedre lesbarhet */
+  background: #fca5a5;
 }
 
 .child-card--ok {
-  background: #bbf7d0; /* lys grønn */
+  background: #bbf7d0;
 }
 
 .child-card-header {
@@ -96,10 +101,38 @@
   margin-bottom: 8px;
 }
 
+.child-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* avatar for barn */
+
+.child-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid rgba(15, 23, 42, 0.2);
+}
+
+.child-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.12);
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
 .child-name {
   font-size: 16px;
   font-weight: 700;
 }
+
+/* Info-knapp */
 
 .child-info-button {
   padding: 6px 14px;
@@ -107,7 +140,11 @@
   border: 1px solid #111827;
   background: #ffffff;
   font-size: 12px;
+  font-weight: 600;
+  color: #111827;
   cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .child-card-body {
@@ -119,6 +156,12 @@
 
 .child-status-text {
   font-size: 13px;
+}
+
+.child-pickup-text {
+  font-size: 12px;
+  color: #374151;
+  margin-top: 2px;
 }
 
 .child-action-button {
@@ -191,9 +234,10 @@
   cursor: pointer;
 }
 
-/* Liten fade-in når dashboardet vises */
+/* Fade-in + overlay-posisjon */
 
 .phone-frame {
+  position: relative;
   animation: dashFadeIn 0.18s ease-out;
 }
 
@@ -208,17 +252,497 @@
   }
 }
 
-/* Ekstra-informasjon under hvert barnkort */
+/* ===== Infoside for ett barn ===== */
 
-.child-extra-list {
-  margin-top: 4px;
-  padding-left: 0;
-  list-style: none;
-  font-size: 12px;
+.child-info-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.child-info-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* større avatar på infosiden */
+
+.child-info-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid rgba(15, 23, 42, 0.25);
+}
+
+.child-info-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 20px;
+  font-weight: 600;
   color: #111827;
 }
 
-.child-extra-list li + li {
+.child-info-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.child-info-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.child-info-box {
+  margin-top: 4px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  border: 1px dashed #9ca3af;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.child-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+.info-pill-emoji {
+  font-size: 18px;
+}
+
+.info-pill-label {
+  flex: 1;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.info-pill-arrow {
+  font-size: 14px;
+  transition: transform 0.15s ease-out;
+}
+
+.info-pill-arrow--open {
+  transform: rotate(180deg);
+}
+
+.info-pill-text {
+  font-size: 13px;
+  color: #374151;
+  padding: 6px 10px 0 4px;
+}
+
+.child-info-back-button {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* ===== Check-in side ===== */
+
+.checkin-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkin-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.checkin-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.checkin-card {
+  margin-top: 4px;
+  padding: 14px 14px 16px;
+  border-radius: 18px;
+  border: 1px dashed #9ca3af;
+  background: #ffffff;
+}
+
+.checkin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.checkin-child-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.checkin-child-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.checkin-status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.checkin-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.checkin-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.radio-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radio-circle--selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  background: radial-gradient(circle at center, #2563eb 55%, transparent 56%);
+}
+
+.checkin-radio-label {
+  font-size: 13px;
+  color: #111827;
+}
+
+/* Ekstra felter for fravær/ferie + henting */
+
+.checkin-extra-fields {
+  margin: 4px 0 4px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkin-field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.checkin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.checkin-field-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.checkin-field-input {
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Påminnelse (Husk utetøy etc) */
+
+.checkin-reminder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.checkin-reminder-emoji {
+  font-size: 16px;
+}
+
+.checkin-reminder-text {
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+/* Henteplan seksjon */
+
+.pickup-section {
+  margin-top: 8px;
+}
+
+.pickup-title {
+  font-size: 13px;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+/* Aktiviteter / bildeflyt + kalenderknapp */
+
+.checkin-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkin-activities-title {
+  font-size: 13px;
+  color: #111827;
+}
+
+.checkin-activities-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activity-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  font-size: 12px;
+  color: #111827;
+  border: none;
+  cursor: pointer;
+}
+
+.calendar-chip {
+  background: #dbeafe;
+}
+
+/* Kalenderseksjon (preview) */
+
+.calendar-section {
+  margin-top: 8px;
+}
+
+.calendar-title {
+  font-size: 13px;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.calendar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.calendar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.calendar-item + .calendar-item {
   margin-top: 2px;
 }
+
+.calendar-date {
+  font-weight: 500;
+}
+
+.calendar-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #6b7280;
+}
+
+.calendar-text {
+  flex: 1;
+}
+
+.calendar-description {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Full kalender-list items */
+
+.calendar-item--full {
+  align-items: flex-start;
+}
+
+.calendar-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Nederste knapper */
+
+.checkin-primary-button {
+  margin-top: auto;
+  width: 100%;
+}
+
+.checkin-back-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* ===== Galleri-side ===== */
+
+.gallery-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gallery-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.gallery-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.gallery-images {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.gallery-image {
+  width: 100%;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.gallery-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Kalender-side (full) ===== */
+
+.calendar-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calendar-page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.calendar-page-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.calendar-block {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.calendar-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.calendar-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ===== Bekreftelses-overlay etter innsjekk ===== */
+
+.checkin-success-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(15, 23, 42, 0.15);
+}
+
+.checkin-success-card {
+  width: 100%;
+  border-radius: 24px;
+  background: #86efac;
+  padding: 18px 16px 16px;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkin-success-icon {
+  font-size: 22px;
+}
+
+.checkin-success-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.checkin-success-text {
+  font-size: 13px;
+  color: #111827;
+}
+
+.checkin-success-button {
+  margin-top: 10px;
+  width: 100%;
+}
+
+
+
 
