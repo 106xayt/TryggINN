@@ -12,11 +12,7 @@ interface StaffCheckInFlowProps {
   onConfirm: (reason?: string, note?: string) => void;
 }
 
-/**
- * Inn/ut-flyt for ansatt – 2 steg:
- * 1) Velg status + årsak + ev. kommentar
- * 2) Bekreftelsesskjerm ("Oliver er registrert inn kl. 07:45")
- */
+
 const StaffCheckInFlow = ({
   childName,
   departmentName,
@@ -33,10 +29,10 @@ const StaffCheckInFlow = ({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    // Varsle parent (oppdaterer tilstedeværelse + logg)
+
     onConfirm(reason, note || undefined);
 
-    // Vis bekreftelsesskjerm
+
     setPhase("success");
   };
 

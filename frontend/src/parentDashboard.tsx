@@ -521,7 +521,7 @@ const CheckInPage = ({
     );
 };
 
-/* ========= Galleri-side for aktiviteter ========= */
+
 
 interface ActivityGalleryProps {
     child: Child;
@@ -569,7 +569,7 @@ const ActivityGalleryPage = ({
     );
 };
 
-/* ========= Kalender-side (fullvisning) ========= */
+
 
 interface CalendarPageProps {
     events: KindergartenEvent[];
@@ -657,7 +657,7 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
     );
 };
 
-/* ========= Profil-side for foresatt ========= */
+
 
 interface ProfilePageProps {
     parentProfile: ParentProfile;
@@ -1003,7 +1003,7 @@ const ProfilePage = ({
     );
 };
 
-/* ========= Selve dashboardet ========= */
+
 
 type ActiveView =
     | "list"
