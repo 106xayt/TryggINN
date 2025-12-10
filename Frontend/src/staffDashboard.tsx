@@ -37,11 +37,10 @@ interface CheckLogItem {
 interface StaffDashboardProps {
     staffName: string;
     onLogout: () => void;
-    /** TODO: senere kan vi sende ekte staffId hit fra login */
     staffId?: number;
 }
 
-const DAYCARE_ID = 1; // TODO: hent fra backend / innlogget bruker etter hvert
+const DAYCARE_ID = 1;
 
 // Midlertidige barn (matcher det vi har i databasen)
 const demoChildren: PresenceChild[] = [
