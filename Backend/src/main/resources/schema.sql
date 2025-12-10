@@ -1,96 +1,105 @@
-CREATE TABLE IF NOT EXISTS daycare (
-                                       id              BIGSERIAL PRIMARY KEY,
-                                       name            VARCHAR(255) NOT NULL,
-    org_number      VARCHAR(50),
-    address         VARCHAR(255),
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
-    );
+-- ==============================
+-- TESTDATA FOR UTVIKLING
+-- ==============================
+-- ==============================
+-- DEV: TØM TABELLER FØR TESTDATA
+-- ==============================
+TRUNCATE
+    attendance,
+    vacation,
+    guardians_children,
+    guardians_daycare,
+    daycare_access_code,
+    children,
+    daycare_group,
+    daycare,
+    users
+    RESTART IDENTITY CASCADE;
 
-CREATE TABLE IF NOT EXISTS users (
-                                     id               BIGSERIAL PRIMARY KEY,
-                                     full_name        VARCHAR(255) NOT NULL,
-    email            VARCHAR(255) UNIQUE,
-    phone_number     VARCHAR(50),
+-- BARNEHAGE
+INSERT INTO daycare (name, org_number, address)
+VALUES ('Eventyrhagen Barnehage', '999888777', 'Eventyrveien 12');
 
-    role             VARCHAR(20) NOT NULL,
-    CONSTRAINT chk_users_role CHECK (role IN ('PARENT', 'STAFF', 'ADMIN')),
+-- Etter denne er daycare.id = 1
 
-    password_hash    VARCHAR(255),
+-- ANSATTE
+INSERT INTO users (full_name, email, phone_number, role, password_hash)
+VALUES
+    ('Anna Ansatt', 'anna@eventyr.no', '12345678', 'STAFF', 'hemmelig'),
+    ('Per Personal', 'per@eventyr.no', '98765432', 'STAFF', 'hemmelig');
 
-    -- For senere BankID-integrasjon
-    external_auth_id VARCHAR(255),
-    auth_provider    VARCHAR(50),
+-- Etter dette:
+--  Anna -> id = 1
+--  Per  -> id = 2
 
-    created_at       TIMESTAMP NOT NULL DEFAULT NOW()
-    );
+-- FORESATTE
+INSERT INTO users (full_name, email, phone_number, role, password_hash)
+VALUES
+    ('Per Foresatt', 'per@forelder.no', '99999999', 'PARENT', 'hemmelig'),
+    ('Line Mamma', 'line@forelder.no', '88888888', 'PARENT', 'hemmelig');
 
-CREATE TABLE IF NOT EXISTS daycare_group (
-                                             id              BIGSERIAL PRIMARY KEY,
-                                             daycare_id      BIGINT NOT NULL REFERENCES daycare(id) ON DELETE CASCADE,
-    name            VARCHAR(255) NOT NULL,
-    description     VARCHAR(255),
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
-    );
+-- Etter dette:
+--  Per  -> id = 3
+--  Line -> id = 4
 
-CREATE TABLE IF NOT EXISTS children (
-                                        id               BIGSERIAL PRIMARY KEY,
-                                        first_name       VARCHAR(100) NOT NULL,
-    last_name        VARCHAR(100),
-    date_of_birth    DATE,
-    daycare_group_id BIGINT REFERENCES daycare_group(id),
-    active           BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at       TIMESTAMP NOT NULL DEFAULT NOW()
-    );
+-- AVDELINGER
+INSERT INTO daycare_group (daycare_id, name, description)
+VALUES
+    (1, 'Lillebjørn', 'Småbarnsavdeling'),
+    (1, 'Månebarna', 'Storebarnsavdeling');
 
-CREATE TABLE IF NOT EXISTS guardians_children (
-                                                  guardian_id      BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    child_id         BIGINT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
-    PRIMARY KEY (guardian_id, child_id)
-    );
+-- Etter dette:
+--  Lillebjørn -> id = 1
+--  Månebarna  -> id = 2
 
-CREATE TABLE IF NOT EXISTS guardians_daycare (
-                                                 guardian_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    daycare_id  BIGINT NOT NULL REFERENCES daycare(id) ON DELETE CASCADE,
-    PRIMARY KEY (guardian_id, daycare_id)
-    );
+-- BARN
+INSERT INTO children (first_name, last_name, date_of_birth, daycare_group_id)
+VALUES
+    ('Oliver', 'Nordmann', '2019-04-15', 1),
+    ('Emma',   'Nordmann', '2018-11-02', 2);
 
-CREATE TABLE IF NOT EXISTS daycare_access_code (
-                                                   id                  BIGSERIAL PRIMARY KEY,
-                                                   code                VARCHAR(32) NOT NULL UNIQUE,
-    daycare_id          BIGINT NOT NULL REFERENCES daycare(id) ON DELETE CASCADE,
-    created_by_user_id  BIGINT NOT NULL REFERENCES users(id),
+-- Etter dette:
+--  Oliver -> id = 1
+--  Emma   -> id = 2
 
-    max_uses            INT NOT NULL DEFAULT 100,   --mange foreldre kan bruke samme kode
-    used_count          INT NOT NULL DEFAULT 0,
+-- KNYTT FORELDRE TIL BARN
+INSERT INTO guardians_children (guardian_id, child_id)
+VALUES
+    (3, 1), -- Per -> Oliver
+    (4, 1), -- Line -> Oliver
+    (3, 2), -- Per -> Emma
+    (4, 2); -- Line -> Emma
 
-    is_active           BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
-    expires_at          TIMESTAMP
-    );
+-- KNYTT FORESATTE TIL BARNEHAGE
+INSERT INTO guardians_daycare (guardian_id, daycare_id)
+VALUES
+    (3, 1), -- Per -> Eventyrhagen
+    (4, 1); -- Line -> Eventyrhagen
 
-CREATE TABLE IF NOT EXISTS attendance (
-                                          id                  BIGSERIAL PRIMARY KEY,
-                                          child_id            BIGINT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
-    marked_by_user_id   BIGINT NOT NULL REFERENCES users(id),
-    event_type          VARCHAR(10) NOT NULL,
-    CONSTRAINT chk_attendance_event_type CHECK (event_type IN ('IN', 'OUT')),
+-- TILGANGSKODE (kan brukes på forsiden)
+INSERT INTO daycare_access_code (
+    code,
+    daycare_id,
+    created_by_user_id,
+    max_uses,
+    used_count,
+    is_active
+) VALUES (
+             'RQD2VC',  -- koden du skriver inn i frontend
+             1,         -- Eventyrhagen
+             1,         -- laget av Anna (id 1)
+             10,
+             0,
+             TRUE
+         );
 
-    event_time          TIMESTAMP NOT NULL DEFAULT NOW(),
-    note                VARCHAR(255),
-    event_reason        VARCHAR(100)
-    );
-
-CREATE INDEX IF NOT EXISTS idx_children_group
-    ON children (daycare_group_id);
-
-CREATE INDEX IF NOT EXISTS idx_attendance_child_time
-    ON attendance (child_id, event_time DESC);
-
-CREATE INDEX IF NOT EXISTS idx_guardians_children_guardian
-    ON guardians_children (guardian_id);
-
-CREATE INDEX IF NOT EXISTS idx_guardians_daycare_guardian
-    ON guardians_daycare (guardian_id);
-
-CREATE INDEX IF NOT EXISTS idx_daycare_access_code_code
-    ON daycare_access_code (code);
+-- NOEN EKSEMPEL INN/UT-REGISTRERINGER
+INSERT INTO attendance (
+    child_id,
+    event_type,
+    event_time,
+    note,
+    performed_by_user_id
+) VALUES
+      (1, 'IN',  NOW() - INTERVAL '2 hours', 'Morgensjekk', 1),  -- Oliver inn
+      (2, 'IN',  NOW() - INTERVAL '1 hour',  'Kom litt senere', 2); -- Emma inn
