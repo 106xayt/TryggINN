@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./forside.css";
 import "./staffDashboard.css";
 import StaffCheckInFlow from "./staffCheckInFlow";
+import { useThemeLanguage } from "./ThemeLanguageContext";
 
 type PresenceStatus = "in" | "out";
 
@@ -60,6 +61,9 @@ const demoChildren: PresenceChild[] = [
 ];
 
 const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
   // 👉 Disse kan senere erstattes med data fra API
   const [departments] = useState<Department[]>(() => demoDepartments);
   const [children, setChildren] = useState<PresenceChild[]>(() => demoChildren);
@@ -70,7 +74,7 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
   const [pendingAction, setPendingAction] = useState<PresenceStatus>("in");
 
   const nowTime = () =>
-    new Date().toLocaleTimeString("nb-NO", {
+    new Date().toLocaleTimeString(isNb ? "nb-NO" : "en-GB", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -121,6 +125,37 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
   const getChildrenForDepartment = (depId: number) =>
     children.filter((c) => c.departmentId === depId);
 
+  // 🔤 Tekster basert på språk
+  const logoutText = isNb ? "Logg ut" : "Log out";
+  const hiText = isNb ? "Hei" : "Hi";
+  const introText = isNb
+    ? "Her ser du tilstedeværelse per avdeling og en live-liste over inn- og utsjekk i dag."
+    : "Here you can see presence per group and a live list of today’s check-ins and check-outs.";
+  const departmentsTitle = isNb ? "Avdelinger" : "Departments";
+  const noDepartmentsText = isNb
+    ? "Ingen avdelinger registrert ennå."
+    : "No departments registered yet.";
+
+  const childrenSuffix = isNb ? " barn" : " children";
+  const noChildrenInDep = isNb
+    ? "Ingen barn registrert på denne avdelingen ennå."
+    : "No children registered in this department yet.";
+
+  const notRegisteredToday = isNb
+    ? "Ikke registrert i dag"
+    : "No registrations today";
+
+  const inLabel = isNb ? "Inn" : "In";
+  const outLabel = isNb ? "Ut" : "Out";
+
+  const checkInButton = isNb ? "Sjekk inn" : "Check in";
+  const checkOutButton = isNb ? "Sjekk ut" : "Check out";
+
+  const logTitle = isNb ? "Inn- og utsjekk i dag" : "Check-ins and -outs today";
+  const noLogText = isNb
+    ? "Ingen registreringer ennå i dag."
+    : "No registrations yet today.";
+
   return (
     <>
       <div className="forside-root">
@@ -131,28 +166,25 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
               <span className="staff-brand-text">TryggINN</span>
             </div>
             <button className="staff-link-button" onClick={onLogout}>
-              Logg ut
+              {logoutText}
             </button>
           </header>
 
           <main className="staff-main">
             {/* Topptekst */}
             <section className="staff-greeting">
-              <h1 className="staff-title">Hei {staffName}!</h1>
-              <p className="staff-intro">
-                Her ser du tilstedeværelse per avdeling og en live-liste over
-                inn- og utsjekk i dag.
-              </p>
+              <h1 className="staff-title">
+                {hiText} {staffName}!
+              </h1>
+              <p className="staff-intro">{introText}</p>
             </section>
 
             {/* Sjekkliste per avdeling */}
             <section className="staff-section">
-              <h2 className="staff-section-title">Avdelinger</h2>
+              <h2 className="staff-section-title">{departmentsTitle}</h2>
 
               {departments.length === 0 ? (
-                <p className="staff-empty-text">
-                  Ingen avdelinger registrert ennå.
-                </p>
+                <p className="staff-empty-text">{noDepartmentsText}</p>
               ) : (
                 <div className="staff-department-list">
                   {departments.map((dep) => {
@@ -164,13 +196,14 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
                             {dep.name}
                           </h3>
                           <span className="staff-department-count">
-                            {depChildren.length} barn
+                            {depChildren.length}
+                            {childrenSuffix}
                           </span>
                         </header>
 
                         {depChildren.length === 0 ? (
                           <p className="staff-department-empty">
-                            Ingen barn registrert på denne avdelingen ennå.
+                            {noChildrenInDep}
                           </p>
                         ) : (
                           <ul className="staff-presence-list">
@@ -186,9 +219,11 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
                                   <span className="staff-presence-time">
                                     {child.lastChange
                                       ? `${
-                                          child.status === "in" ? "Inn" : "Ut"
+                                          child.status === "in"
+                                            ? `${inLabel}`
+                                            : `${outLabel}`
                                         } ${child.lastChange}`
-                                      : "Ikke registrert i dag"}
+                                      : notRegisteredToday}
                                   </span>
                                 </div>
 
@@ -202,8 +237,8 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
                                   onClick={() => openCheckInFlow(child)}
                                 >
                                   {child.status === "in"
-                                    ? "Sjekk ut"
-                                    : "Sjekk inn"}
+                                    ? checkOutButton
+                                    : checkInButton}
                                 </button>
                               </li>
                             ))}
@@ -218,12 +253,10 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
 
             {/* Live inn-/ut-liste */}
             <section className="staff-section">
-              <h2 className="staff-section-title">Inn- og utsjekk i dag</h2>
+              <h2 className="staff-section-title">{logTitle}</h2>
 
               {checkLog.length === 0 ? (
-                <p className="staff-empty-text">
-                  Ingen registreringer ennå i dag.
-                </p>
+                <p className="staff-empty-text">{noLogText}</p>
               ) : (
                 <ul className="staff-checklog-list">
                   {checkLog.map((log) => (
@@ -244,7 +277,7 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
                               : "staff-checklog-status--out"
                           }`}
                         >
-                          {log.action === "in" ? "Inn" : "Ut"}
+                          {log.action === "in" ? inLabel : outLabel}
                         </span>
                         <span className="staff-checklog-time">
                           {log.time}
@@ -276,3 +309,4 @@ const StaffDashboard = ({ staffName, onLogout }: StaffDashboardProps) => {
 };
 
 export default StaffDashboard;
+

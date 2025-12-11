@@ -7,6 +7,10 @@ import ResetPasswordPage from "./resetPasswordPage";
 import ParentDashboard from "./parentDashboard";
 import StaffDashboard from "./staffDashboard";
 
+import SettingsBar from "./settingsBar";
+import { useThemeLanguage } from "./ThemeLanguageContext";
+import "./theme.css";
+
 type View =
   | "registrerBarnehage"
   | "barnehageVelkommen"
@@ -22,6 +26,9 @@ export default function App() {
 
   const [parentName, setParentName] = useState("Lise");
   const [staffName, setStaffName] = useState("Ansatt");
+
+  const { theme } = useThemeLanguage();
+  //const isNb = language === "nb";
 
   const handleBarnehageRegistrert = () => {
     setBarnehageNavn("Eventyrhagen Barnehage");
@@ -57,70 +64,78 @@ export default function App() {
     setView("barnehageVelkommen");
   };
 
-  return (() => {
-    switch (view) {
-      case "registrerBarnehage":
-        return (
-          <Forside onBarnehageRegistrert={handleBarnehageRegistrert} />
-        );
+  return (
+    <div className={`app-root theme-${theme}`}>
+      {/* Dette er "siden som snakker med alle": */}
+      <SettingsBar />
 
-      case "barnehageVelkommen":
-        return (
-          <BarnehageSide
-            barnehageNavn={barnehageNavn}
-            onTilbakeTilKode={handleTilbakeTilKode}
-            onGoToLogin={goToLogin}
-            onGoToRegister={goToRegister}
-            onGoToReset={goToResetPassword}
-          />
-        );
+      {/* Her er resten av appen din uendret, bare inni en switch */}
+      {(() => {
+        switch (view) {
+          case "registrerBarnehage":
+            return (
+              <Forside onBarnehageRegistrert={handleBarnehageRegistrert} />
+            );
 
-      case "login":
-        return (
-          <LoginPage
-            barnehageNavn={barnehageNavn}
-            onBack={backToWelcome}
-            onParentLoggedIn={handleParentLoggedIn}
-            onStaffLoggedIn={handleStaffLoggedIn}
-          />
-        );
+          case "barnehageVelkommen":
+            return (
+              <BarnehageSide
+                barnehageNavn={barnehageNavn}
+                onTilbakeTilKode={handleTilbakeTilKode}
+                onGoToLogin={goToLogin}
+                onGoToRegister={goToRegister}
+                onGoToReset={goToResetPassword}
+              />
+            );
 
-      case "register":
-        return (
-          <RegisterPage
-            barnehageNavn={barnehageNavn}
-            onBack={backToWelcome}
-          />
-        );
+          case "login":
+            return (
+              <LoginPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+                onParentLoggedIn={handleParentLoggedIn}
+                onStaffLoggedIn={handleStaffLoggedIn}
+              />
+            );
 
-      case "resetPassword":
-        return (
-          <ResetPasswordPage
-            barnehageNavn={barnehageNavn}
-            onBack={backToWelcome}
-          />
-        );
+          case "register":
+            return (
+              <RegisterPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+              />
+            );
 
-      case "parentDashboard":
-        return (
-          <ParentDashboard
-            parentName={parentName}
-            onLogout={handleLogoutToWelcome}
-          />
-        );
+          case "resetPassword":
+            return (
+              <ResetPasswordPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+              />
+            );
 
-      case "staffDashboard":
-        return (
-          <StaffDashboard
-            staffName={staffName}
-            onLogout={handleLogoutToWelcome}
-          />
-        );
+          case "parentDashboard":
+            return (
+              <ParentDashboard
+                parentName={parentName}
+                onLogout={handleLogoutToWelcome}
+              />
+            );
 
-      default:
-        return null;
-    }
-  })();
+          case "staffDashboard":
+            return (
+              <StaffDashboard
+                staffName={staffName}
+                onLogout={handleLogoutToWelcome}
+              />
+            );
+
+          default:
+            return null;
+        }
+      })()}
+    </div>
+  );
 }
 
 /** Liten hjelpefunksjon – valgfri, bare for å gjøre navnet pent */
@@ -128,8 +143,5 @@ function capitalize(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
-
-
-
 
 

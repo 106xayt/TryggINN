@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import "./forside.css";
 import "./parentsDashboard.css";
+import { useThemeLanguage } from "./ThemeLanguageContext";
 
 type ChildStatus = "notCheckedIn" | "checkedIn";
 
@@ -71,19 +72,30 @@ interface ChildInfoProps {
 
 const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
   const [openSection, setOpenSection] = useState<string | null>("allergies");
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
 
   const toggleSection = (section: string) => {
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
   const allergiesText =
-    child.allergies?.trim() || "Ingen registrerte allergier.";
+    child.allergies?.trim() ||
+    (isNb ? "Ingen registrerte allergier." : "No registered allergies.");
   const departmentText =
-    child.department?.trim() || "Ingen avdeling registrert.";
+    child.department?.trim() ||
+    (isNb ? "Ingen avdeling registrert." : "No department registered.");
   const otherText =
-    child.otherInfo?.trim() || "Ingen ekstra informasjon registrert.";
+    child.otherInfo?.trim() ||
+    (isNb ? "Ingen ekstra informasjon registrert." : "No extra information registered.");
 
   const firstLetter = child.name.trim().charAt(0).toUpperCase();
+
+  const allergiesLabel = isNb ? "Allergier" : "Allergies";
+  const departmentLabel = isNb ? "Avdeling" : "Department";
+  const otherLabel = isNb ? "Annet" : "Other";
+  const backText = isNb ? 'Tilbake til "Dine barn"' : 'Back to "Your children"';
+  const departmentTitlePrefix = isNb ? "Avdeling " : "Department ";
 
   return (
     <section className="child-info-page">
@@ -91,7 +103,7 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
         {child.photoUrl ? (
           <img
             src={child.photoUrl}
-            alt={`Bilde av ${child.name}`}
+            alt={isNb ? `Bilde av ${child.name}` : `Photo of ${child.name}`}
             className="child-info-avatar"
           />
         ) : (
@@ -103,7 +115,10 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
         <div>
           <h1 className="child-info-title">{child.name}</h1>
           {child.department && (
-            <p className="child-info-subtitle">Avdeling {child.department}</p>
+            <p className="child-info-subtitle">
+              {departmentTitlePrefix}
+              {child.department}
+            </p>
           )}
         </div>
       </div>
@@ -119,7 +134,7 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
             <span className="info-pill-emoji" aria-hidden="true">
               🥜
             </span>
-            <span className="info-pill-label">Allergier</span>
+            <span className="info-pill-label">{allergiesLabel}</span>
             <span
               className={`info-pill-arrow ${
                 openSection === "allergies" ? "info-pill-arrow--open" : ""
@@ -144,7 +159,7 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
             <span className="info-pill-emoji" aria-hidden="true">
               🏠
             </span>
-            <span className="info-pill-label">Avdeling</span>
+            <span className="info-pill-label">{departmentLabel}</span>
             <span
               className={`info-pill-arrow ${
                 openSection === "department" ? "info-pill-arrow--open" : ""
@@ -169,7 +184,7 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
             <span className="info-pill-emoji" aria-hidden="true">
               ⭐
             </span>
-            <span className="info-pill-label">Annet</span>
+            <span className="info-pill-label">{otherLabel}</span>
             <span
               className={`info-pill-arrow ${
                 openSection === "other" ? "info-pill-arrow--open" : ""
@@ -190,7 +205,7 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
         className="login-button child-info-back-button"
         onClick={onBack}
       >
-        Tilbake til &quot;Dine barn&quot;
+        {backText}
       </button>
     </section>
   );
@@ -227,6 +242,9 @@ const CheckInPage = ({
   onOpenActivity,
   onOpenCalendar,
 }: CheckInPageProps) => {
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
   const [selectedOption, setSelectedOption] = useState<CheckInOption>(
     "present"
   );
@@ -257,9 +275,9 @@ const CheckInPage = ({
 
   // Standardaktiviteter hvis barnet ikke har noe fra backend ennå
   const defaultActivities: ChildActivity[] = [
-    { id: 1, label: "🖼️ Bilde fra i går", photos: [] },
-    { id: 2, label: "🌲 Tur i skogen", photos: [] },
-    { id: 3, label: "🎉 Bursdagsfeiring", photos: [] },
+    { id: 1, label: isNb ? "🖼️ Bilde fra i går" : "🖼️ Photo from yesterday", photos: [] },
+    { id: 2, label: isNb ? "🌲 Tur i skogen" : "🌲 Trip in the forest", photos: [] },
+    { id: 3, label: isNb ? "🎉 Bursdagsfeiring" : "🎉 Birthday party", photos: [] },
   ];
 
   const activitiesToShow: ChildActivity[] =
@@ -274,23 +292,74 @@ const CheckInPage = ({
     .filter((evt) => evt.date >= todayISO)
     .slice(0, 3);
 
+  const titleText = isNb ? `Kryss inn ${child.name}` : `Check in ${child.name}`;
+  const subtitleText = isNb
+    ? `Trykk på knappen for å krysse inn ${child.name}.`
+    : `Tap the button to check in ${child.name}.`;
+  const cardSubtitlePrefix = isNb
+    ? "Trykk for å krysse inn →"
+    : "Tap to check in →";
+  const statusBadge = isNb ? "Borte" : "Absent";
+
+  const absenceLabel = isNb ? "🚫 Registrer fravær" : "🚫 Register absence";
+  const absenceDateLabel = isNb ? "Dato" : "Date";
+  const absenceNoteLabel = isNb
+    ? "Notat (f.eks. sykdom)"
+    : "Note (e.g. sickness)";
+  const absencePlaceholder = isNb
+    ? "Feber, forkjølet, time hos lege ..."
+    : "Fever, cold, doctor appointment ...";
+
+  const holidayLabel = isNb ? "🏝️ Legg inn ferie" : "🏝️ Register holiday";
+  const holidayFromLabel = isNb ? "Fra" : "From";
+  const holidayToLabel = isNb ? "Til" : "To";
+
+  const pickupTitle = isNb
+    ? "Hvem henter i barnehagen?"
+    : "Who is picking up at kindergarten?";
+  const pickupDateLabel = isNb ? "Dato for henting" : "Pickup date";
+  const pickupNoteLabel = isNb ? "Melding om henting" : "Pickup note";
+  const pickupPlaceholder = isNb
+    ? "F.eks. Bestemor henter kl 15:30"
+    : "e.g. Grandma picks up at 15:30";
+
+  const activitiesTitle = isNb
+    ? `Se hva ${child.name} har gjort`
+    : `See what ${child.name} has done`;
+
+  const calendarChipText = isNb
+    ? "📅 Barnehagens kalender"
+    : "📅 Kindergarten calendar";
+
+  const upcomingTitle = isNb
+    ? "Kommende i barnehagen"
+    : "Upcoming in the kindergarten";
+
+  const confirmButton = isNb
+    ? `Kryss inn ${child.name} nå`
+    : `Check in ${child.name} now`;
+
+  const backText = isNb ? "Tilbake" : "Back";
+
   return (
     <section className="checkin-page">
-      <h1 className="checkin-title">Kryss inn {child.name}</h1>
-      <p className="checkin-subtitle">
-        Trykk på knappen for å krysse inn {child.name}.
-      </p>
+      <h1 className="checkin-title">{titleText}</h1>
+      <p className="checkin-subtitle">{subtitleText}</p>
 
       <div className="checkin-card">
         <div className="checkin-card-header">
           <div>
             <h2 className="checkin-child-name">{child.name}</h2>
             <p className="checkin-child-subtitle">
-              Trykk for å krysse inn →
-              {child.department ? ` Avdeling ${child.department}` : ""}
+              {cardSubtitlePrefix}
+              {child.department
+                ? isNb
+                  ? ` Avdeling ${child.department}`
+                  : ` Department ${child.department}`
+                : ""}
             </p>
           </div>
-          <span className="checkin-status-badge">Borte</span>
+          <span className="checkin-status-badge">{statusBadge}</span>
         </div>
 
         <div className="checkin-card-body">
@@ -308,13 +377,15 @@ const CheckInPage = ({
                 selectedOption === "absent" ? "radio-circle--selected" : ""
               }`}
             />
-            <span className="checkin-radio-label">🚫 Registrer fravær</span>
+            <span className="checkin-radio-label">{absenceLabel}</span>
           </button>
 
           {selectedOption === "absent" && (
             <div className="checkin-extra-fields">
               <div className="checkin-field">
-                <label className="checkin-field-label">Dato</label>
+                <label className="checkin-field-label">
+                  {absenceDateLabel}
+                </label>
                 <input
                   type="date"
                   className="checkin-field-input"
@@ -324,12 +395,12 @@ const CheckInPage = ({
               </div>
               <div className="checkin-field">
                 <label className="checkin-field-label">
-                  Notat (f.eks. sykdom)
+                  {absenceNoteLabel}
                 </label>
                 <input
                   type="text"
                   className="checkin-field-input"
-                  placeholder="Feber, forkjølet, time hos lege ..."
+                  placeholder={absencePlaceholder}
                   value={absenceNote}
                   onChange={(e) => setAbsenceNote(e.target.value)}
                 />
@@ -351,14 +422,16 @@ const CheckInPage = ({
                 selectedOption === "holiday" ? "radio-circle--selected" : ""
               }`}
             />
-            <span className="checkin-radio-label">🏝️ Legg inn ferie</span>
+            <span className="checkin-radio-label">{holidayLabel}</span>
           </button>
 
           {selectedOption === "holiday" && (
             <div className="checkin-extra-fields">
               <div className="checkin-field-row">
                 <div className="checkin-field">
-                  <label className="checkin-field-label">Fra</label>
+                  <label className="checkin-field-label">
+                    {holidayFromLabel}
+                  </label>
                   <input
                     type="date"
                     className="checkin-field-input"
@@ -367,7 +440,9 @@ const CheckInPage = ({
                   />
                 </div>
                 <div className="checkin-field">
-                  <label className="checkin-field-label">Til</label>
+                  <label className="checkin-field-label">
+                    {holidayToLabel}
+                  </label>
                   <input
                     type="date"
                     className="checkin-field-input"
@@ -392,10 +467,10 @@ const CheckInPage = ({
 
       {/* Henteplan */}
       <div className="pickup-section">
-        <p className="pickup-title">Hvem henter i barnehagen?</p>
+        <p className="pickup-title">{pickupTitle}</p>
         <div className="checkin-extra-fields">
           <div className="checkin-field">
-            <label className="checkin-field-label">Dato for henting</label>
+            <label className="checkin-field-label">{pickupDateLabel}</label>
             <input
               type="date"
               className="checkin-field-input"
@@ -404,11 +479,11 @@ const CheckInPage = ({
             />
           </div>
           <div className="checkin-field">
-            <label className="checkin-field-label">Melding om henting</label>
+            <label className="checkin-field-label">{pickupNoteLabel}</label>
             <input
               type="text"
               className="checkin-field-input"
-              placeholder="F.eks. Bestemor henter kl 15:30"
+              placeholder={pickupPlaceholder}
               value={pickupNote}
               onChange={(e) => setPickupNote(e.target.value)}
             />
@@ -418,9 +493,7 @@ const CheckInPage = ({
 
       {/* Aktiviteter / bilder + kalenderknapp */}
       <div className="checkin-activities">
-        <p className="checkin-activities-title">
-          Se hva {child.name} har gjort
-        </p>
+        <p className="checkin-activities-title">{activitiesTitle}</p>
         <div className="checkin-activities-chips">
           {activitiesToShow.map((activity) => (
             <button
@@ -438,7 +511,7 @@ const CheckInPage = ({
             className="activity-chip calendar-chip"
             onClick={onOpenCalendar}
           >
-            📅 Barnehagens kalender
+            {calendarChipText}
           </button>
         </div>
       </div>
@@ -446,7 +519,7 @@ const CheckInPage = ({
       {/* Kalender-hendelser (kort preview) */}
       {upcomingEvents.length > 0 && (
         <div className="calendar-section">
-          <p className="calendar-title">Kommende i barnehagen</p>
+          <p className="calendar-title">{upcomingTitle}</p>
           <ul className="calendar-list">
             {upcomingEvents.map((evt) => (
               <li key={evt.id} className="calendar-item">
@@ -466,7 +539,7 @@ const CheckInPage = ({
         className="login-button checkin-primary-button"
         onClick={handleConfirm}
       >
-        Kryss inn {child.name} nå
+        {confirmButton}
       </button>
 
       <button
@@ -474,7 +547,7 @@ const CheckInPage = ({
         className="secondary-button checkin-back-button"
         onClick={onBack}
       >
-        Tilbake
+        {backText}
       </button>
     </section>
   );
@@ -493,12 +566,23 @@ const ActivityGalleryPage = ({
   activity,
   onBack,
 }: ActivityGalleryProps) => {
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
+  const subtitle = isNb
+    ? `Bilder lagt inn av ansatte for ${child.name}.`
+    : `Photos added by staff for ${child.name}.`;
+
+  const emptyText = isNb
+    ? "Ingen bilder er lagt inn enda. Dette fylles fra ansatt-siden."
+    : "No photos have been added yet. This will be filled from the staff side.";
+
+  const backText = isNb ? "Tilbake" : "Back";
+
   return (
     <section className="gallery-page">
       <h1 className="gallery-title">{activity.label}</h1>
-      <p className="gallery-subtitle">
-        Bilder lagt inn av ansatte for {child.name}.
-      </p>
+      <p className="gallery-subtitle">{subtitle}</p>
 
       {activity.photos && activity.photos.length > 0 ? (
         <div className="gallery-images">
@@ -512,9 +596,7 @@ const ActivityGalleryPage = ({
           ))}
         </div>
       ) : (
-        <p className="gallery-empty">
-          Ingen bilder er lagt inn enda. Dette fylles fra ansatt-siden.
-        </p>
+        <p className="gallery-empty">{emptyText}</p>
       )}
 
       <button
@@ -522,7 +604,7 @@ const ActivityGalleryPage = ({
         className="secondary-button checkin-back-button"
         onClick={onBack}
       >
-        Tilbake
+        {backText}
       </button>
     </section>
   );
@@ -536,6 +618,9 @@ interface CalendarPageProps {
 }
 
 const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const sortedEvents = events
@@ -545,23 +630,32 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
   const upcoming = sortedEvents.filter((e) => e.date >= todayISO);
   const past = sortedEvents.filter((e) => e.date < todayISO);
 
+  const title = isNb ? "Barnehagens kalender" : "Kindergarten calendar";
+  const subtitle = isNb
+    ? "Oversikt over planlagte aktiviteter og merkedager."
+    : "Overview of planned activities and special days.";
+
+  const emptyText = isNb
+    ? "Kalenderen er ikke fylt inn enda. Dette kommer fra barnehagens system."
+    : "The calendar has not been filled in yet. This will come from the kindergarten's system.";
+
+  const upcomingTitle = isNb ? "Kommende" : "Upcoming";
+  const pastTitle = isNb ? "Tidligere" : "Past";
+
+  const backText = isNb ? "Tilbake" : "Back";
+
   return (
     <section className="calendar-page">
-      <h1 className="calendar-page-title">Barnehagens kalender</h1>
-      <p className="calendar-page-subtitle">
-        Oversikt over planlagte aktiviteter og merkedager.
-      </p>
+      <h1 className="calendar-page-title">{title}</h1>
+      <p className="calendar-page-subtitle">{subtitle}</p>
 
       {sortedEvents.length === 0 && (
-        <p className="calendar-empty">
-          Kalenderen er ikke fylt inn enda. Dette kommer fra barnehagens
-          system.
-        </p>
+        <p className="calendar-empty">{emptyText}</p>
       )}
 
       {upcoming.length > 0 && (
         <div className="calendar-block">
-          <h2 className="calendar-block-title">Kommende</h2>
+          <h2 className="calendar-block-title">{upcomingTitle}</h2>
           <ul className="calendar-list">
             {upcoming.map((evt) => (
               <li key={evt.id} className="calendar-item calendar-item--full">
@@ -585,7 +679,7 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
 
       {past.length > 0 && (
         <div className="calendar-block">
-          <h2 className="calendar-block-title">Tidligere</h2>
+          <h2 className="calendar-block-title">{pastTitle}</h2>
           <ul className="calendar-list">
             {past.map((evt) => (
               <li key={evt.id} className="calendar-item calendar-item--full">
@@ -612,7 +706,7 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
         className="secondary-button checkin-back-button"
         onClick={onBack}
       >
-        Tilbake
+        {backText}
       </button>
     </section>
   );
@@ -642,6 +736,9 @@ const ProfilePage = ({
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
 
   // hvilke seksjoner som er åpne
   const [openSections, setOpenSections] = useState<{
@@ -697,25 +794,84 @@ const ProfilePage = ({
 
   const handlePasswordSubmit = () => {
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      alert("Fyll inn begge passordfeltene.");
+      alert(
+        isNb
+          ? "Fyll inn begge passordfeltene."
+          : "Please fill in both password fields."
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
-      alert("Passordene er ikke like.");
+      alert(
+        isNb ? "Passordene er ikke like." : "The passwords do not match."
+      );
       return;
     }
     // Klar for backend-integrasjon:
     onPasswordReset(newPassword);
     alert(
-      "I denne demoen lagres ikke passordet ennå. Dette kobles til backend senere."
+      isNb
+        ? "I denne demoen lagres ikke passordet ennå. Dette kobles til backend senere."
+        : "In this demo the password is not saved yet. This will be connected to the backend later."
     );
     setNewPassword("");
     setConfirmPassword("");
   };
 
+  const profileTitle = isNb ? "Min profil" : "My profile";
+  const parentSectionTitle = isNb ? "Foresatt" : "Guardian";
+  const nameLabel = isNb ? "Navn" : "Name";
+  const namePlaceholder = isNb ? "Ditt navn" : "Your name";
+  const emailLabel = isNb ? "E-post" : "Email";
+  const emailPlaceholder = isNb
+    ? "din.epost@eksempel.no"
+    : "your.email@example.com";
+  const phoneLabel = isNb ? "Telefonnummer" : "Phone number";
+  const phonePlaceholder = isNb ? "F.eks. 900 00 000" : "e.g. 900 00 000";
+
+  const passwordSectionTitle = isNb ? "Passord" : "Password";
+  const passwordHint = isNb
+    ? "Her kan du be om å sette nytt passord. Selve lagringen kobles mot barnehagens system senere."
+    : "Here you can request to set a new password. Saving will be connected to the kindergarten system later.";
+
+  const newPasswordLabel = isNb ? "Nytt passord" : "New password";
+  const repeatPasswordLabel = isNb
+    ? "Gjenta nytt passord"
+    : "Repeat new password";
+  const resetPasswordButton = isNb ? "Reset passord" : "Reset password";
+
+  const childrenTitle = isNb
+    ? `Barn (${localChildren.length})`
+    : `Children (${localChildren.length})`;
+
+  const noChildrenHint = isNb
+    ? "Du har ingen registrerte barn enda. Legg til barn fra hovedsiden."
+    : "You have no registered children yet. Add children from the main page.";
+
+  const childNameLabel = isNb ? "Navn" : "Name";
+  const photoLabel = isNb ? "Lenke til bilde" : "Link to photo";
+  const photoPlaceholder = "https://…";
+  const allergiesLabel = isNb ? "Allergier" : "Allergies";
+  const allergiesPlaceholder = isNb
+    ? "F.eks. nøtter, melk, pollen"
+    : "e.g. nuts, milk, pollen";
+  const departmentLabel = isNb ? "Avdeling" : "Department";
+  const departmentPlaceholder = isNb
+    ? "F.eks. Rød, Blå, Løvene"
+    : "e.g. Red, Blue, Lions";
+  const otherLabel = isNb ? "Annet" : "Other";
+  const otherPlaceholder = isNb
+    ? "Henting, språk, spesielle beskjeder..."
+    : "Pickup, language, special notes...";
+
+  const saveButton = isNb ? "Lagre endringer" : "Save changes";
+  const backButton = isNb
+    ? 'Tilbake til "Dine barn"'
+    : 'Back to "Your children"';
+
   return (
     <section className="profile-page">
-      <h1 className="profile-title">Min profil</h1>
+      <h1 className="profile-title">{profileTitle}</h1>
 
       {/* Foresatt-info */}
       <div className="profile-section">
@@ -724,7 +880,7 @@ const ProfilePage = ({
           className="profile-section-header"
           onClick={() => toggleSection("parent")}
         >
-          <span className="profile-section-title">Foresatt</span>
+          <span className="profile-section-title">{parentSectionTitle}</span>
           <span
             className={`profile-section-arrow ${
               openSections.parent ? "profile-section-arrow--open" : ""
@@ -737,7 +893,7 @@ const ProfilePage = ({
         {openSections.parent && (
           <div className="profile-section-body">
             <div className="form-field">
-              <label className="form-label">Navn</label>
+              <label className="form-label">{nameLabel}</label>
               <input
                 type="text"
                 className="text-input"
@@ -745,12 +901,12 @@ const ProfilePage = ({
                 onChange={(e) =>
                   setLocalParent((p) => ({ ...p, name: e.target.value }))
                 }
-                placeholder="Ditt navn"
+                placeholder={namePlaceholder}
               />
             </div>
 
             <div className="form-field">
-              <label className="form-label">E-post</label>
+              <label className="form-label">{emailLabel}</label>
               <input
                 type="email"
                 className="text-input"
@@ -758,12 +914,12 @@ const ProfilePage = ({
                 onChange={(e) =>
                   setLocalParent((p) => ({ ...p, email: e.target.value }))
                 }
-                placeholder="din.epost@eksempel.no"
+                placeholder={emailPlaceholder}
               />
             </div>
 
             <div className="form-field">
-              <label className="form-label">Telefonnummer</label>
+              <label className="form-label">{phoneLabel}</label>
               <input
                 type="tel"
                 className="text-input"
@@ -771,7 +927,7 @@ const ProfilePage = ({
                 onChange={(e) =>
                   setLocalParent((p) => ({ ...p, phone: e.target.value }))
                 }
-                placeholder="F.eks. 900 00 000"
+                placeholder={phonePlaceholder}
               />
             </div>
           </div>
@@ -785,7 +941,7 @@ const ProfilePage = ({
           className="profile-section-header"
           onClick={() => toggleSection("password")}
         >
-          <span className="profile-section-title">Passord</span>
+          <span className="profile-section-title">{passwordSectionTitle}</span>
           <span
             className={`profile-section-arrow ${
               openSections.password ? "profile-section-arrow--open" : ""
@@ -797,13 +953,10 @@ const ProfilePage = ({
 
         {openSections.password && (
           <div className="profile-section-body">
-            <p className="profile-section-hint">
-              Her kan du be om å sette nytt passord. Selve lagringen kobles mot
-              barnehagens system senere.
-            </p>
+            <p className="profile-section-hint">{passwordHint}</p>
 
             <div className="form-field">
-              <label className="form-label">Nytt passord</label>
+              <label className="form-label">{newPasswordLabel}</label>
               <input
                 type="password"
                 className="text-input"
@@ -814,7 +967,7 @@ const ProfilePage = ({
             </div>
 
             <div className="form-field">
-              <label className="form-label">Gjenta nytt passord</label>
+              <label className="form-label">{repeatPasswordLabel}</label>
               <input
                 type="password"
                 className="text-input"
@@ -829,7 +982,7 @@ const ProfilePage = ({
               className="secondary-button full-width-secondary profile-password-button"
               onClick={handlePasswordSubmit}
             >
-              Reset passord
+              {resetPasswordButton}
             </button>
           </div>
         )}
@@ -842,9 +995,7 @@ const ProfilePage = ({
           className="profile-section-header"
           onClick={() => toggleSection("children")}
         >
-          <span className="profile-section-title">
-            Barn ({localChildren.length})
-          </span>
+          <span className="profile-section-title">{childrenTitle}</span>
           <span
             className={`profile-section-arrow ${
               openSections.children ? "profile-section-arrow--open" : ""
@@ -857,10 +1008,7 @@ const ProfilePage = ({
         {openSections.children && (
           <div className="profile-section-body">
             {localChildren.length === 0 ? (
-              <p className="profile-section-hint">
-                Du har ingen registrerte barn enda. Legg til barn fra
-                hovedsiden.
-              </p>
+              <p className="profile-section-hint">{noChildrenHint}</p>
             ) : (
               <div className="profile-children-list">
                 {localChildren.map((child, index) => (
@@ -868,7 +1016,7 @@ const ProfilePage = ({
                     <p className="profile-child-title">{child.name}</p>
 
                     <div className="form-field">
-                      <label className="form-label">Navn</label>
+                      <label className="form-label">{childNameLabel}</label>
                       <input
                         type="text"
                         className="text-input"
@@ -880,7 +1028,7 @@ const ProfilePage = ({
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Lenke til bilde</label>
+                      <label className="form-label">{photoLabel}</label>
                       <input
                         type="url"
                         className="text-input"
@@ -888,12 +1036,12 @@ const ProfilePage = ({
                         onChange={(e) =>
                           handleChildChange(index, "photoUrl", e.target.value)
                         }
-                        placeholder="https://…"
+                        placeholder={photoPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Allergier</label>
+                      <label className="form-label">{allergiesLabel}</label>
                       <input
                         type="text"
                         className="text-input"
@@ -901,12 +1049,12 @@ const ProfilePage = ({
                         onChange={(e) =>
                           handleChildChange(index, "allergies", e.target.value)
                         }
-                        placeholder="F.eks. nøtter, melk, pollen"
+                        placeholder={allergiesPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Avdeling</label>
+                      <label className="form-label">{departmentLabel}</label>
                       <input
                         type="text"
                         className="text-input"
@@ -914,12 +1062,12 @@ const ProfilePage = ({
                         onChange={(e) =>
                           handleChildChange(index, "department", e.target.value)
                         }
-                        placeholder="F.eks. Rød, Blå, Løvene"
+                        placeholder={departmentPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Annet</label>
+                      <label className="form-label">{otherLabel}</label>
                       <input
                         type="text"
                         className="text-input"
@@ -927,7 +1075,7 @@ const ProfilePage = ({
                         onChange={(e) =>
                           handleChildChange(index, "otherInfo", e.target.value)
                         }
-                        placeholder="Henting, språk, spesielle beskjeder..."
+                        placeholder={otherPlaceholder}
                       />
                     </div>
                   </div>
@@ -942,18 +1090,17 @@ const ProfilePage = ({
         type="button"
         className="login-button profile-save-button"
         onClick={handleSaveProfile}
->
-        Lagre endringer
-    </button>
+      >
+        {saveButton}
+      </button>
 
-    <button
+      <button
         type="button"
         className="secondary-button profile-back-button"
         onClick={onBack}
->
-        Tilbake til &quot;Dine barn&quot;
-    </button>
-
+      >
+        {backButton}
+      </button>
     </section>
   );
 };
@@ -1007,6 +1154,9 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
     phone: "",
   });
 
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
   useEffect(() => {
     // Her kan backend kobles på senere
   }, []);
@@ -1029,11 +1179,14 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                     }),
               note:
                 child.status === "checkedIn"
-                  ? "Ikke krysset inn ennå"
-                  : `Krysset inn ${new Date().toLocaleTimeString("nb-NO", {
+                  ? isNb
+                    ? "Ikke krysset inn ennå"
+                    : "Not checked in yet"
+                  : (isNb ? "Krysset inn " : "Checked in ") +
+                    new Date().toLocaleTimeString("nb-NO", {
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}`,
+                    }),
               absenceDate: undefined,
               absenceNote: undefined,
               holidayFrom: undefined,
@@ -1052,7 +1205,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
       id: Date.now(),
       name: newChildName.trim(),
       status: "notCheckedIn",
-      note: "Ikke krysset inn ennå",
+      note: isNb ? "Ikke krysset inn ennå" : "Not checked in yet",
       allergies: newChildAllergies.trim() || undefined,
       department: newChildDepartment.trim() || undefined,
       otherInfo: newChildOther.trim() || undefined,
@@ -1129,7 +1282,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             ...updatedChild,
             status: "checkedIn",
             lastCheckIn: timeStr,
-            note: `Krysset inn ${timeStr}`,
+            note: (isNb ? "Krysset inn " : "Checked in ") + timeStr,
             absenceDate: undefined,
             absenceNote: undefined,
             holidayFrom: undefined,
@@ -1138,7 +1291,9 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
         } else if (option === "absent") {
           const formattedDate = absenceDate
             ? new Date(absenceDate).toLocaleDateString("nb-NO")
-            : "i dag";
+            : isNb
+            ? "i dag"
+            : "today";
           const noteText = absenceNote?.trim()
             ? ` – ${absenceNote.trim()}`
             : "";
@@ -1150,7 +1305,10 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             absenceNote,
             holidayFrom: undefined,
             holidayTo: undefined,
-            note: `Registrert fravær ${formattedDate}${noteText}`,
+            note:
+              (isNb ? "Registrert fravær " : "Registered absence ") +
+              formattedDate +
+              noteText,
           };
         } else {
           // holiday
@@ -1173,7 +1331,9 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             absenceNote: undefined,
             holidayFrom,
             holidayTo,
-            note: `Registrert ferie${dateRangeText}`,
+            note:
+              (isNb ? "Registrert ferie" : "Registered holiday") +
+              dateRangeText,
           };
         }
 
@@ -1191,8 +1351,12 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             const baseNote = updatedChild.note ?? "";
             const extra =
               baseNote.length > 0
-                ? ` – Henting: ${pickupNote.trim()}`
-                : `Henting: ${pickupNote.trim()}`;
+                ? isNb
+                  ? ` – Henting: ${pickupNote.trim()}`
+                  : ` – Pickup: ${pickupNote.trim()}`
+                : isNb
+                ? `Henting: ${pickupNote.trim()}`
+                : `Pickup: ${pickupNote.trim()}`;
             updatedChild.note = baseNote + extra;
           }
         }
@@ -1259,6 +1423,70 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
 
   const displayName = parentProfile.name || parentName;
 
+  const logoutText = isNb ? "Logg ut" : "Log out";
+  const hiText = isNb ? "Hei" : "Hi";
+  const profileLink = isNb ? "Min profil" : "My profile";
+  const sectionTitleChildren = isNb ? "Dine barn" : "Your children";
+  const noChildrenText = isNb
+    ? 'Du har ingen registrerte barn ennå.\nTrykk på "Legg til nytt barn" for å legge inn informasjon.'
+    : 'You have no registered children yet.\nTap "Add new child" to add information.';
+
+  const notCheckedInText = isNb
+    ? "Ikke krysset inn ennå"
+    : "Not checked in yet";
+
+  const checkedInPrefix = isNb ? "Krysset inn " : "Checked in ";
+
+  const pickupPrefix = isNb ? "Henting" : "Pickup";
+
+  const checkOutText = isNb ? "Sjekk ut" : "Check out";
+  const checkInText = isNb ? "Sjekk inn" : "Check in";
+
+  const calendarButtonText = isNb
+    ? "📅 Se barnehagens kalender"
+    : "📅 View kindergarten calendar";
+
+  const addChildTitle = isNb ? "Legg til nytt barn" : "Add new child";
+  const childNameLabel = isNb ? "Navn på barn" : "Child's name";
+  const childNamePlaceholder = isNb
+    ? "F.eks. Noah Nordmann"
+    : "e.g. Noah Nordmann";
+
+  const photoLabel = isNb
+    ? "Lenke til bilde (valgfritt)"
+    : "Link to photo (optional)";
+  const photoPlaceholder = "https://…";
+
+  const allergiesLabel = isNb ? "Allergier" : "Allergies";
+  const allergiesPlaceholder = isNb
+    ? "F.eks. nøtter, melk, pollen"
+    : "e.g. nuts, milk, pollen";
+
+  const departmentLabel = isNb ? "Avdeling" : "Department";
+  const departmentPlaceholder = isNb
+    ? "F.eks. Rød, Blå, Løvene"
+    : "e.g. Red, Blue, Lions";
+
+  const otherLabel = isNb ? "Annet (valgfritt)" : "Other (optional)";
+  const otherPlaceholder = isNb
+    ? "Henting, språk, spesielle beskjeder..."
+    : "Pickup, language, special notes...";
+
+  const cancelText = isNb ? "Avbryt" : "Cancel";
+  const saveChildText = isNb ? "Lagre barn" : "Save child";
+  const addChildButton = isNb ? "+ Legg til nytt barn" : "+ Add new child";
+
+  const successHeadingPrefix = isNb
+    ? "er krysset inn"
+    : "has been checked in";
+  const successTextPrefix = isNb
+    ? "Innkryssing er registrert kl "
+    : "Check-in registered at ";
+  const successDepartmentPrefix = isNb ? ", hos " : ", in ";
+  const successBackText = isNb
+    ? 'Tilbake til "Dine barn"'
+    : 'Back to "Your children"';
+
   return (
     <div className="forside-root">
       <div className="phone-frame">
@@ -1268,7 +1496,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             <span className="brand-text">TryggINN</span>
           </div>
           <button className="text-link-button" onClick={onLogout}>
-            Logg ut
+            {logoutText}
           </button>
         </header>
 
@@ -1320,26 +1548,32 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             <>
               <section className="dashboard-greeting">
                 <div className="dashboard-greeting-row">
-                  <h1 className="dashboard-title">Hei {displayName}!</h1>
+                  <h1 className="dashboard-title">
+                    {hiText} {displayName}!
+                  </h1>
                   <button
                     type="button"
                     className="profile-link-button"
                     onClick={openProfile}
                   >
-                    Min profil
+                    {profileLink}
                   </button>
                 </div>
               </section>
 
               <section className="dashboard-section">
-                <h2 className="dashboard-section-title">Dine barn</h2>
+                <h2 className="dashboard-section-title">
+                  {sectionTitleChildren}
+                </h2>
 
                 {children.length === 0 ? (
                   <p className="dashboard-empty-text">
-                    Du har ingen registrerte barn ennå.
-                    <br />
-                    Trykk på <strong>&quot;Legg til nytt barn&quot;</strong> for
-                    å legge inn informasjon.
+                    {noChildrenText.split("\n").map((line, idx) => (
+                      <span key={idx}>
+                        {line}
+                        {idx === 0 && <br />}
+                      </span>
+                    ))}
                   </p>
                 ) : (
                   <div className="children-list">
@@ -1363,7 +1597,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                         const dateText = new Date(
                           nextPlan.date
                         ).toLocaleDateString("nb-NO");
-                        upcomingPickupText = `Henting ${dateText}: ${nextPlan.note}`;
+                        upcomingPickupText = `${pickupPrefix} ${dateText}: ${nextPlan.note}`;
                       }
 
                       return (
@@ -1380,7 +1614,11 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                               {child.photoUrl ? (
                                 <img
                                   src={child.photoUrl}
-                                  alt={`Bilde av ${child.name}`}
+                                  alt={
+                                    isNb
+                                      ? `Bilde av ${child.name}`
+                                      : `Photo of ${child.name}`
+                                  }
                                   className="child-avatar"
                                 />
                               ) : (
@@ -1396,7 +1634,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                               className="child-info-button"
                               onClick={() => openChildInfo(child)}
                             >
-                              Info
+                              {isNb ? "Info" : "Info"}
                             </button>
                           </div>
 
@@ -1405,10 +1643,10 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                               <p className="child-status-text">
                                 {child.note ??
                                   (isCheckedIn
-                                    ? `Krysset inn ${
+                                    ? `${checkedInPrefix}${
                                         child.lastCheckIn ?? ""
                                       }`
-                                    : "Ikke krysset inn ennå")}
+                                    : notCheckedInText)}
                               </p>
                               {upcomingPickupText && (
                                 <p className="child-pickup-text">
@@ -1429,7 +1667,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                                   : openChildCheckIn(child)
                               }
                             >
-                              {isCheckedIn ? "Sjekk ut" : "Sjekk inn"}
+                              {isCheckedIn ? checkOutText : checkInText}
                             </button>
                           </div>
                         </article>
@@ -1445,77 +1683,68 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                   className="secondary-button full-width-secondary"
                   onClick={openCalendarFromList}
                 >
-                  📅 Se barnehagens kalender
+                  {calendarButtonText}
                 </button>
               </section>
 
               <section className="dashboard-section add-child-section">
                 {showAddChild ? (
-                  <form
-                    onSubmit={handleAddChild}
-                    className="add-child-form"
-                  >
-                    <h3 className="add-child-title">Legg til nytt barn</h3>
+                  <form onSubmit={handleAddChild} className="add-child-form">
+                    <h3 className="add-child-title">{addChildTitle}</h3>
 
                     <div className="form-field">
-                      <label className="form-label">Navn på barn</label>
+                      <label className="form-label">{childNameLabel}</label>
                       <input
                         type="text"
                         className="text-input"
                         value={newChildName}
                         onChange={(e) => setNewChildName(e.target.value)}
-                        placeholder="F.eks. Noah Nordmann"
+                        placeholder={childNamePlaceholder}
                         required
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">
-                        Lenke til bilde (valgfritt)
-                      </label>
+                      <label className="form-label">{photoLabel}</label>
                       <input
                         type="url"
                         className="text-input"
                         value={newChildPhotoUrl}
                         onChange={(e) => setNewChildPhotoUrl(e.target.value)}
-                        placeholder="https://…"
+                        placeholder={photoPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Allergier</label>
+                      <label className="form-label">{allergiesLabel}</label>
                       <input
                         type="text"
                         className="text-input"
                         value={newChildAllergies}
-                        onChange={(e) =>
-                          setNewChildAllergies(e.target.value)
-                        }
-                        placeholder="F.eks. nøtter, melk, pollen"
+                        onChange={(e) => setNewChildAllergies(e.target.value)}
+                        placeholder={allergiesPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Avdeling</label>
+                      <label className="form-label">{departmentLabel}</label>
                       <input
                         type="text"
                         className="text-input"
                         value={newChildDepartment}
-                        onChange={(e) =>
-                          setNewChildDepartment(e.target.value)
-                        }
-                        placeholder="F.eks. Rød, Blå, Løvene"
+                        onChange={(e) => setNewChildDepartment(e.target.value)}
+                        placeholder={departmentPlaceholder}
                       />
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Annet (valgfritt)</label>
+                      <label className="form-label">{otherLabel}</label>
                       <input
                         type="text"
                         className="text-input"
                         value={newChildOther}
                         onChange={(e) => setNewChildOther(e.target.value)}
-                        placeholder="Henting, språk, spesielle beskjeder..."
+                        placeholder={otherPlaceholder}
                       />
                     </div>
 
@@ -1525,13 +1754,13 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                         className="secondary-button small-secondary"
                         onClick={() => setShowAddChild(false)}
                       >
-                        Avbryt
+                        {cancelText}
                       </button>
                       <button
                         type="submit"
                         className="login-button small-login-button"
                       >
-                        Lagre barn
+                        {saveChildText}
                       </button>
                     </div>
                   </form>
@@ -1541,7 +1770,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                     className="secondary-button full-width-secondary"
                     onClick={() => setShowAddChild(true)}
                   >
-                    + Legg til nytt barn
+                    {addChildButton}
                   </button>
                 )}
               </section>
@@ -1554,13 +1783,13 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
             <div className="checkin-success-card">
               <div className="checkin-success-icon">✓</div>
               <p className="checkin-success-heading">
-                {checkInSuccess.childName} er krysset inn
+                {checkInSuccess.childName} {successHeadingPrefix}
               </p>
               <p className="checkin-success-text">
-                Innkryssing er registrert kl{" "}
+                {successTextPrefix}
                 <strong>{checkInSuccess.time}</strong>
                 {checkInSuccess.department
-                  ? `, hos ${checkInSuccess.department}`
+                  ? `${successDepartmentPrefix}${checkInSuccess.department}`
                   : ""}
                 .
               </p>
@@ -1570,7 +1799,7 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
                 className="login-button checkin-success-button"
                 onClick={handleCloseSuccess}
               >
-                Tilbake til &quot;Dine barn&quot;
+                {successBackText}
               </button>
             </div>
           </div>
@@ -1581,14 +1810,3 @@ const ParentDashboard = ({ parentName, onLogout }: ParentDashboardProps) => {
 };
 
 export default ParentDashboard;
-
-
-
-
-
-
-
-
-
-
-

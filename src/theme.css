@@ -1,0 +1,339 @@
+/* ============================
+   GLOBAL ROOT WRAPPER
+   (App.tsx: <div className={`app-root theme-${theme}`}>)
+   ============================ */
+
+.app-root.theme-light {
+  background: #e5e7eb;          /* lys grå rundt mobilen */
+  color: #111827;
+}
+
+.app-root.theme-dark {
+  background: #020617;          /* mørk rundt mobilen */
+  color: #e5e7eb;
+}
+
+/* ============================
+   FELLES MOBIL-RAMME
+   (gjelder i både light og dark)
+   ============================ */
+
+/* Denne overstyrer .forside-root i forside.css pga høyere spesifisitet */
+.app-root .forside-root {
+  max-width: 480px;
+  margin: 0 auto 32px;
+  border-radius: 32px;       /* lik avrunding i begge modes */
+  overflow: hidden;          /* innholdet følger avrundede hjørner */
+}
+
+/* ============================
+   MOBIL-RAMMEN PER THEME
+   (bakgrunn + skygge)
+   ============================ */
+
+.app-root.theme-light .forside-root {
+  background: #ededed;          /* lys mobilbakgrunn */
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+}
+
+.app-root.theme-dark .forside-root {
+  background: #0f172a;          /* mørk mobilbakgrunn */
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  color: #f1f5f9;
+}
+
+/* Tekst inne i mobilen – default lys i dark mode */
+.app-root.theme-dark .forside-root h1,
+.app-root.theme-dark .forside-root h2,
+.app-root.theme-dark .forside-root h3,
+.app-root.theme-dark .forside-root p,
+.app-root.theme-dark .forside-root label {
+  color: #f1f5f9;
+}
+
+/* ============================
+   LOGO-BOKS
+   ============================ */
+
+.app-root.theme-dark .logo-box {
+  background: #1e3a8a; /* mørkere blå */
+}
+
+/* ============================
+   KORT (Registrer deg / Login)
+   ============================ */
+
+.app-root.theme-light .card {
+  background: #5a97de;
+  color: white;
+}
+
+.app-root.theme-dark .card {
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+  color: #e2e8f0;
+}
+
+/* ============================
+   KNAPPER
+   ============================ */
+
+.app-root.theme-dark .primary-button,
+.app-root.theme-dark .login-button {
+  background: #1d4ed8;
+  color: white;
+  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.5);
+}
+
+.app-root.theme-dark .secondary-button {
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+/* ============================
+   INPUT-FELTER
+   ============================ */
+
+.app-root.theme-dark input,
+.app-root.theme-dark textarea {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #475569;
+}
+
+.app-root.theme-dark input::placeholder,
+.app-root.theme-dark textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* ============================
+   SETTINGS BAR (øverst, integrert med mobilen)
+   ============================ */
+
+.settings-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+
+  /* gjør den like bred som mobilen og sentrert */
+  max-width: 480px;
+  margin: 16px auto -20px;  /* center + trekk den litt ned i mobilen */
+  padding: 8px 12px;
+
+  border-radius: 24px 24px 0 0;   /* runde topphjørner */
+  position: relative;
+  z-index: 5;
+
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+}
+
+.app-root.theme-light .settings-bar {
+  background: #0f172a;
+  color: #f9fafb;
+}
+
+.app-root.theme-dark .settings-bar {
+  background: #020617;
+  color: #e5e7eb;
+}
+
+/* Toggle-knapp */
+.theme-toggle-button {
+  border-radius: 999px;
+  border: 1px solid #6b7280;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.app-root.theme-light .theme-toggle-button {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.app-root.theme-dark .theme-toggle-button {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* Språkvelger */
+.language-select {
+  border-radius: 999px;
+  border: 1px solid #6b7280;
+  padding: 4px 4px 4px 8px;
+  background: #f9fafb;
+  font-size: 13px;
+}
+
+.app-root.theme-dark .language-select {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+/* ===========================================
+   DARK MODE OVERRIDES FOR PARENT DASHBOARD
+   =========================================== */
+
+/* Header-tekst og brand */
+.app-root.theme-dark .dashboard-title,
+.app-root.theme-dark .dashboard-section-title,
+.app-root.theme-dark .dashboard-empty-text,
+.app-root.theme-dark .brand-text {
+  color: #e5e7eb;
+}
+
+/* Barn-kort */
+.app-root.theme-dark .child-card--alert {
+  background: #b91c1c;            /* litt mørkere rød, men tydelig */
+  color: #fef2f2;
+}
+
+.app-root.theme-dark .child-card--ok {
+  background: #15803d;            /* grønn, men mørkere */
+  color: #ecfdf3;
+}
+
+.app-root.theme-dark .child-status-text,
+.app-root.theme-dark .child-pickup-text,
+.app-root.theme-dark .child-name {
+  color: inherit;
+}
+
+.app-root.theme-dark .child-info-button {
+  background: #0f172a;
+  border-color: #e5e7eb;
+  color: #e5e7eb;
+}
+
+/* "Legg til barn"-kort og profil-seksjoner */
+.app-root.theme-dark .add-child-form,
+.app-root.theme-dark .profile-section,
+.app-root.theme-dark .profile-child-card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.app-root.theme-dark .add-child-title,
+.app-root.theme-dark .profile-title,
+.app-root.theme-dark .profile-section-title,
+.app-root.theme-dark .profile-section-hint,
+.app-root.theme-dark .profile-child-title {
+  color: #e5e7eb;
+}
+
+/* ===== Check-in-kortet (det som var svart på svart) ===== */
+
+.app-root.theme-dark .checkin-card {
+  background: #020617;          /* mørk, men med lys tekst */
+  border-color: #1e293b;
+}
+
+/* Overstyr alle mørke tekster i kortet */
+.app-root.theme-dark .checkin-title,
+.app-root.theme-dark .checkin-subtitle,
+.app-root.theme-dark .checkin-child-name,
+.app-root.theme-dark .checkin-child-subtitle,
+.app-root.theme-dark .checkin-radio-label,
+.app-root.theme-dark .checkin-field-label,
+.app-root.theme-dark .pickup-title,
+.app-root.theme-dark .checkin-activities-title,
+.app-root.theme-dark .calendar-title,
+.app-root.theme-dark .calendar-text,
+.app-root.theme-dark .calendar-description {
+  color: #e5e7eb;
+}
+
+/* Radioknapp-tekst og sirkler */
+.app-root.theme-dark .radio-circle {
+  border-color: #e5e7eb;
+}
+
+.app-root.theme-dark .radio-circle--selected {
+  border-color: #3b82f6;
+  box-shadow: inset 0 0 0 4px #3b82f6;
+}
+
+/* Reminder-boks i dark mode */
+.app-root.theme-dark .checkin-reminder {
+  background: #facc15;
+  color: #1f2937;
+}
+
+/* Activity chips og kalender-chip */
+.app-root.theme-dark .activity-chip {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.app-root.theme-dark .calendar-chip {
+  background: #1d4ed8;
+  color: #e5e7eb;
+}
+
+/* Kalender-blokker (full side) */
+.app-root.theme-dark .calendar-block {
+  background: #020617;
+  border: 1px solid #1e293b;
+}
+
+/* Bekreftelses-kortet kan være likt i begge modes,
+   men gjør teksten litt tydeligere på mørk bakgrunn */
+.app-root.theme-dark .checkin-success-overlay {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.app-root.theme-dark .checkin-success-card {
+  background: #22c55e;
+  color: #022c22;
+}
+
+/* ===========================================
+   DARK MODE – LOGIN / REGISTER / RESET-SIDER
+   (form-card, labels, role-toggle, lenker)
+   =========================================== */
+
+/* Selve kortet (Sign in / Sign up / Reset) */
+.app-root.theme-dark .form-card {
+  background: #020617;          /* samme som bakgrunn inne i mobilen */
+  border: 1px solid #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  color: #e5e7eb;
+}
+
+/* Tittelen inne i kortet */
+.app-root.theme-dark .form-title {
+  color: #e5e7eb;
+}
+
+/* Labels over input */
+.app-root.theme-dark .form-label {
+  color: #cbd5f5;
+}
+
+/* Login / register / reset-lenker under skjemaet */
+.app-root.theme-dark .helper-link {
+  color: #93c5fd;           /* lys blå */
+}
+
+/* Role-toggle (Guardian / Staff) */
+.app-root.theme-dark .role-toggle-button {
+  background: #020617;
+  border-color: #1e293b;
+  color: #e5e7eb;
+}
+
+.app-root.theme-dark .role-toggle-button--active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #f9fafb;
+}
+
+/* For sikkerhets skyld – evt. “Choose role” / “Sign in”-overskrifter */
+.app-root.theme-dark .small-header .welcome-title,
+.app-root.theme-dark .small-welcome .welcome-title {
+  color: #e5e7eb;
+}
+
+
+

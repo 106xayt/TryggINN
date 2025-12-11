@@ -8,7 +8,7 @@
   padding: 0;
 }
 
-/* Fyll hele vinduet og midtstill innholdet */
+/* Fyll hele vinduet */
 html,
 body {
   height: 100%;
@@ -17,21 +17,15 @@ body {
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #e5e7eb !important; /* lys grå bakgrunn, overstyrer Vite sin mørke */
-  display: flex;
-  justify-content: center;  /* horisontalt sentrum */
-  align-items: center;      /* vertikalt sentrum */
+  background: #e5e7eb; /* ok som fallback, blir uansett dekket av .app-root */
 }
 
-/* Ytre container for appen (den grå "siden") */
+/* Ytre container for skjermen.
+   Layout styres nå av theme.css (avrunding, skygge, max-width osv.) */
 .forside-root {
   width: 100%;
-  max-width: 480px;         /* mobilbredde på store skjermer */
   min-height: 90vh;
-  background: #ededed;      /* samme som i Figma-prototypen */
-  border-radius: 24px;
   padding: 32px 20px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
   display: flex;
   flex-direction: column;
 }
@@ -193,12 +187,13 @@ body {
   align-items: center;
   gap: 14px; /* avstand mellom knappene */
   margin-top: 20px;
+  width: 100%;
 }
 
 /* Primær-knapp ("Logg inn") */
 .login-button {
   width: 70%;
-  padding: 12px 16px;
+  padding: 14px 32px;
   border-radius: 999px;
   background: #0040ff;
   color: white;
@@ -206,8 +201,8 @@ body {
   font-size: 15px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 64, 255, 0.35);
-  transition: 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(0, 64, 255, 0.4);
 }
 
 .login-button:hover {
@@ -217,47 +212,6 @@ body {
 /* Sekundær-knapper ("Registrer deg", "Reset passord") */
 .secondary-button {
   width: 60%;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: #1f1f1f;
-  color: #ffffff;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  text-align: center;
-  transition: background 0.15s ease;
-}
-
-.secondary-button:hover {
-  background: #333333;
-}
-
-/* ===== Korrekt størrelse for knappene ===== */
-
-.button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: center;
-  width: 100%;
-}
-
-/* Blå logg-inn-knapp */
-.login-button {
-  padding: 14px 32px;
-  border-radius: 999px;
-  background: #0040ff;
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: 0 10px 24px rgba(0, 64, 255, 0.4);
-}
-
-/* Sekundære knapper */
-.secondary-button {
   padding: 12px 28px;
   border-radius: 18px;
   background: #1a1a1a;
@@ -270,7 +224,6 @@ body {
   text-align: center;
   min-width: 160px;   /* ← sørger for at teksten får plass */
 }
-
 
 .secondary-button:hover {
   background: #000;
@@ -406,4 +359,5 @@ body {
   color: #ffffff;
   border-color: #2563eb;
 }
+
 
