@@ -67,7 +67,7 @@ interface ParentDashboardProps {
     onLogout: () => void;
 }
 
-/* ---- Backend-respons ---- */
+/* ---- Backend-respons ----- */
 
 interface BackendChild {
     id: number;
