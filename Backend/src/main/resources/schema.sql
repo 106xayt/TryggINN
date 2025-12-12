@@ -73,12 +73,19 @@ CREATE TABLE IF NOT EXISTS guardians_daycare (
 
 -- Access codes for joining a daycare
 CREATE TABLE IF NOT EXISTS daycare_access_code (
-    id          BIGSERIAL PRIMARY KEY,
-    daycare_id  BIGINT NOT NULL REFERENCES daycare(id) ON DELETE CASCADE,
-    code        VARCHAR(64) NOT NULL UNIQUE,
-    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+    id                 BIGSERIAL PRIMARY KEY,
+    daycare_id          BIGINT NOT NULL REFERENCES daycare(id) ON DELETE CASCADE,
+    code               VARCHAR(64) NOT NULL UNIQUE,
+    max_uses           INT NOT NULL,
+    used_count         INT NOT NULL DEFAULT 0,
+    created_by_user_id BIGINT NOT NULL REFERENCES users(id),
+    is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT daycare_access_code_max_uses_check CHECK (max_uses > 0),
+    CONSTRAINT daycare_access_code_used_count_check CHECK (used_count >= 0 AND used_count <= max_uses)
+    );
+
 
 -- Attendance events (check-in/out etc.)
 CREATE TABLE IF NOT EXISTS attendance (
@@ -110,74 +117,3 @@ CREATE INDEX IF NOT EXISTS idx_vacation_child_start ON vacation(child_id, start_
 
 
 
--- ---------------------------------------------------------
---  3) TESTDATA (OPTIONAL)
---     Remove this block if you don't want seed data.
--- ---------------------------------------------------------
-
--- Daycare
-INSERT INTO daycare (name, org_number, address)
-VALUES ('Eventyrhagen Barnehage', '999888777', 'Eventyrveien 12');
-
--- Users (password_hash are placeholders - replace with real hashes)
-INSERT INTO users (full_name, email, phone_number, role, password_hash)
-VALUES
-('Admin Bruker', 'admin@trygginn.no', '90000000', 'ADMIN', '$2a$10$dummyhashadmin'),
-('Ansatt Bruker', 'staff@trygginn.no', '91111111', 'STAFF', '$2a$10$dummyhashstaff'),
-('Foresatt Bruker', 'parent@trygginn.no', '92222222', 'PARENT', '$2a$10$dummyhashparent');
-
--- Connect users to daycare
-INSERT INTO guardians_daycare (user_id, daycare_id, access_role)
-SELECT u.id, d.id,
-       CASE u.role
-           WHEN 'ADMIN' THEN 'ADMIN'
-           WHEN 'STAFF' THEN 'STAFF'
-           ELSE 'PARENT'
-       END
-FROM users u
-CROSS JOIN daycare d;
-
--- Group
-INSERT INTO daycare_group (daycare_id, name)
-SELECT d.id, 'Maurene'
-FROM daycare d;
-
--- Children
-INSERT INTO children (daycare_group_id, first_name, last_name, birth_date)
-SELECT g.id, 'Ola', 'Nordmann', DATE '2021-05-10'
-FROM daycare_group g
-WHERE g.name = 'Maurene';
-
-INSERT INTO children (daycare_group_id, first_name, last_name, birth_date)
-SELECT g.id, 'Kari', 'Nordmann', DATE '2020-11-22'
-FROM daycare_group g
-WHERE g.name = 'Maurene';
-
--- Link parent to both children
-INSERT INTO guardians_children (guardian_user_id, child_id, relationship)
-SELECT p.id, c.id, 'PARENT'
-FROM users p
-JOIN children c ON TRUE
-WHERE p.email = 'parent@trygginn.no';
-
--- Access code
-INSERT INTO daycare_access_code (daycare_id, code, is_active)
-SELECT d.id, 'JOIN-TRYGGINN-1234', TRUE
-FROM daycare d;
-
--- Attendance examples
-INSERT INTO attendance (child_id, event_type, event_time)
-SELECT c.id, 'CHECK_IN', NOW() - INTERVAL '2 hours'
-FROM children c
-WHERE c.first_name = 'Ola';
-
-INSERT INTO attendance (child_id, event_type, event_time)
-SELECT c.id, 'CHECK_OUT', NOW() - INTERVAL '30 minutes'
-FROM children c
-WHERE c.first_name = 'Ola';
-
--- Vacation example
-INSERT INTO vacation (child_id, start_date, end_date, note)
-SELECT c.id, DATE '2025-12-20', DATE '2026-01-02', 'Juleferie'
-FROM children c
-WHERE c.first_name = 'Kari';
