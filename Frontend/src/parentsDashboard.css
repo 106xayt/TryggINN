@@ -271,7 +271,9 @@
   }
 }
 
-/* ===== Infoside for ett barn ===== */
+/* ============================
+   INFOSIDE FOR ETT BARN
+   ============================ */
 
 .child-info-page {
   flex: 1;
@@ -280,29 +282,453 @@
   gap: 16px;
 }
 
-/* ... (resten av info-/checkin-/kalender-/galleri-stilene er som før) ... */
+.child-info-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
 
-/* ===== Profil-side ===== */
+.child-info-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid rgba(15, 23, 42, 0.25);
+}
+
+.child-info-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.18);
+  color: #111827;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.child-info-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.child-info-subtitle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.child-info-box {
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px dashed #cbd5f5;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.child-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Pille-knapper (Allergier / Avdeling / Annet) */
+
+.info-pill {
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.info-pill-emoji {
+  margin-right: 4px;
+}
+
+.info-pill-label {
+  flex: 1;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.info-pill-arrow {
+  font-size: 13px;
+  transition: transform 0.15s ease-out;
+}
+
+.info-pill-arrow--open {
+  transform: rotate(180deg);
+}
+
+.info-pill-text {
+  font-size: 13px;
+  color: #111827;
+  padding: 4px 4px 0 4px;
+}
+
+/* Tilbake-knapp */
+
+.child-info-back-button {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* ============================
+   CHECK-IN SIDE FOR ETT BARN
+   ============================ */
+
+.checkin-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkin-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.checkin-subtitle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.checkin-card {
+  border-radius: 18px;
+  padding: 12px 14px;
+  border: 1px dashed #cbd5f5;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkin-child-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.checkin-child-subtitle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.checkin-status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.checkin-card-body {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Radioknapper som rader */
+
+.checkin-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.radio-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid #9ca3af;
+  background: transparent;
+  display: inline-block;
+}
+
+.radio-circle--selected {
+  border-color: #2563eb;
+  box-shadow: inset 0 0 0 4px #2563eb;
+}
+
+.checkin-radio-label {
+  font-size: 14px;
+}
+
+/* Ekstra felter (fravær / ferie / henting) */
+
+.checkin-extra-fields {
+  margin-left: 24px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkin-field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.checkin-field-label {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.checkin-field-input {
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+/* Påminnelse (Husk utetøy i dag) */
+
+.checkin-reminder {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fef9c3;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.checkin-reminder-emoji {
+  margin-top: 1px;
+}
+
+.checkin-reminder-text {
+  color: #78350f;
+}
+
+/* Henteplan */
+
+.pickup-section {
+  margin-top: 4px;
+}
+
+.pickup-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Aktiviteter / bilder + kalenderknapp */
+
+.checkin-activities {
+  margin-top: 4px;
+}
+
+.checkin-activities-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.checkin-activities-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.activity-chip {
+  border-radius: 999px;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+.calendar-chip {
+  background: #dbeafe;
+}
+
+/* Kalender-preview inne på checkin */
+
+.calendar-section {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.calendar-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.calendar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.calendar-item--full {
+  align-items: flex-start;
+}
+
+.calendar-date {
+  font-weight: 600;
+}
+
+.calendar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+.calendar-text {
+  font-size: 12px;
+}
+
+.calendar-description {
+  display: block;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+/* Primær + tilbake-knapper nederst */
+
+.checkin-primary-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.checkin-back-button {
+  margin-top: 6px;
+  width: 100%;
+}
+
+/* ============================
+   GALLERI-SIDE
+   ============================ */
+
+.gallery-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gallery-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.gallery-subtitle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.gallery-images {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gallery-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.gallery-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ============================
+   KALENDER-SIDE (full)
+   ============================ */
+
+.calendar-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-page-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.calendar-page-subtitle {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.calendar-block {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.calendar-block-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.calendar-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ============================
+   PROFIL-SIDE
+   ============================ */
 
 .profile-page {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow-y: auto;      /* scroll inne på Min profil */
-  padding-bottom: 24px;  /* litt ekstra luft nederst */
+  overflow-y: auto;
+  padding-bottom: 24px;
 }
-
-.profile-save-button {
-  margin-top: 4px;
-  width: 100%;
-}
-
-.profile-back-button {
-  margin-top: 8px;
-  width: 100%;
-}
-
 
 .profile-title {
   font-size: 22px;
@@ -389,8 +815,122 @@
   width: 100%;
 }
 
-/* ===== Bekreftelses-overlay etter innsjekk ===== */
-/* (uendret – samme som før) */
+.profile-back-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* ============================
+   BEKREFTELSES-OVERLAY
+   ============================ */
+
+.checkin-success-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 20;
+}
+
+.checkin-success-card {
+  width: 100%;
+  border-radius: 24px;
+  background: #bbf7d0;
+  padding: 16px 18px;
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.5);
+}
+
+.checkin-success-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.checkin-success-heading {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.checkin-success-text {
+  font-size: 13px;
+  color: #065f46;
+  margin-bottom: 10px;
+}
+
+.checkin-success-button {
+  width: 100%;
+}
+
+/* =======================================
+   DARK THEME – JUSTERING FOR DASHBOARD
+   ======================================= */
+
+/* Topptekster / brand */
+.app-root.theme-dark .brand-text {
+  color: #f9fafb;
+}
+
+.app-root.theme-dark .dashboard-title,
+.app-root.theme-dark .dashboard-section-title,
+.app-root.theme-dark .dashboard-empty-text {
+  color: #e5e7eb;
+}
+
+/* Barn-kort – litt kraftigere skygge i dark mode */
+.app-root.theme-dark .child-card {
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.8);
+}
+
+.app-root.theme-dark .child-avatar--placeholder {
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+/* Info-boks og check-in kort: gjør dem mørke i dark mode */
+.app-root.theme-dark .child-info-box,
+.app-root.theme-dark .checkin-card,
+.app-root.theme-dark .calendar-section,
+.app-root.theme-dark .calendar-block {
+  background: #020617;
+  border-color: #1e293b;
+}
+
+/* Undertekster på disse kortene */
+.app-root.theme-dark .child-info-subtitle,
+.app-root.theme-dark .checkin-subtitle,
+.app-root.theme-dark .calendar-description,
+.app-root.theme-dark .calendar-empty,
+.app-root.theme-dark .gallery-empty {
+  color: #cbd5f5;
+}
+
+/* Chipsene (Photo from yesterday / calendar osv.) */
+.app-root.theme-dark .activity-chip {
+  background: #1e293b;
+  color: #e5e7eb;
+}
+
+.app-root.theme-dark .calendar-chip {
+  background: #1d4ed8;
+  color: #f9fafb;
+}
+
+/* Påminnelse-boksen (gul) kan være lys, men vi passer på teksten */
+.app-root.theme-dark .checkin-reminder {
+  background: #fef3c7;
+  color: #78350f;
+}
 
 
 

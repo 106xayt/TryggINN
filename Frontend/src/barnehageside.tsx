@@ -1,4 +1,5 @@
 import "./forside.css";
+import { useThemeLanguage } from "./ThemeLanguageContext";
 
 interface BarnehageSideProps {
   barnehageNavn: string;
@@ -15,6 +16,15 @@ const BarnehageSide = ({
   onGoToRegister,
   onGoToReset,
 }: BarnehageSideProps) => {
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
+  const welcomeLine = isNb ? "Velkommen til" : "Welcome to";
+  const loginText = isNb ? "Logg inn ↪" : "Log in ↪";
+  const registerText = isNb ? "Registrer deg" : "Register";
+  const resetText = isNb ? "Reset passord" : "Reset password";
+  const backText = isNb ? "Tilbake" : "Back";
+
   return (
     <div className="forside-root">
       <div className="phone-frame">
@@ -27,7 +37,7 @@ const BarnehageSide = ({
         <main className="forside-main">
           <section className="welcome-section">
             <h1 className="welcome-title">
-              Velkommen til
+              {welcomeLine}
               <br />
               <span className="welcome-brand">{barnehageNavn}</span>
             </h1>
@@ -35,21 +45,21 @@ const BarnehageSide = ({
 
           <div className="button-group">
             <button className="login-button" onClick={onGoToLogin}>
-              Logg inn ↪
+              {loginText}
             </button>
 
             <button className="secondary-button" onClick={onGoToRegister}>
-              Registrer deg
+              {registerText}
             </button>
 
             <button className="secondary-button" onClick={onGoToReset}>
-              Reset passord
+              {resetText}
             </button>
           </div>
 
           <div className="back-link-row">
             <button className="text-link-button" onClick={onTilbakeTilKode}>
-              Tilbake
+              {backText}
             </button>
           </div>
         </main>
@@ -59,4 +69,5 @@ const BarnehageSide = ({
 };
 
 export default BarnehageSide;
+
 

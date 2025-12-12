@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import "./forside.css";
+import { useThemeLanguage } from "./ThemeLanguageContext";
 
 interface RegisterPageProps {
   barnehageNavn: string;
@@ -12,6 +13,9 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
   const [telefon, setTelefon] = useState("");
   const [passord, setPassord] = useState("");
 
+  const { language } = useThemeLanguage();
+  const isNb = language === "nb";
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
@@ -21,6 +25,26 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
     // senere:
     // await api.registerForelder(payload)
   };
+
+  const titleTop = isNb ? "Registrer deg" : "Sign up";
+  const createAccountTitle = isNb ? "Opprett konto" : "Create account";
+
+  const nameLabel = isNb ? "Navn" : "Name";
+  const namePlaceholder = isNb ? "Ditt fulle navn" : "Your full name";
+
+  const emailLabel = isNb ? "E-post" : "Email";
+  const emailPlaceholder = isNb ? "din@epost.no" : "your@email.com";
+
+  const phoneLabel = isNb ? "Telefon" : "Phone";
+  const phonePlaceholder = isNb ? "Mobilnummer" : "Mobile number";
+
+  const passwordLabel = isNb ? "Passord" : "Password";
+  const passwordPlaceholder = isNb
+    ? "Velg et passord"
+    : "Choose a password";
+
+  const submitText = isNb ? "Registrer deg ➕" : "Create account ➕";
+  const backText = isNb ? "⟵ Tilbake til forsiden" : "⟵ Back to start";
 
   return (
     <div className="forside-root">
@@ -34,70 +58,70 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
         <main className="forside-main">
           <section className="welcome-section small-welcome">
             <h1 className="welcome-title">
-              Registrer deg
+              {titleTop}
               <br />
               <span className="welcome-brand">{barnehageNavn}</span>
             </h1>
           </section>
 
           <section className="form-card">
-            <h2 className="form-title">Opprett konto</h2>
+            <h2 className="form-title">{createAccountTitle}</h2>
 
             <form onSubmit={handleSubmit} className="form">
               <div className="form-field">
-                <label className="form-label">Navn</label>
+                <label className="form-label">{nameLabel}</label>
                 <input
                   type="text"
                   className="text-input"
                   value={navn}
                   onChange={(e) => setNavn(e.target.value)}
-                  placeholder="Ditt fulle navn"
+                  placeholder={namePlaceholder}
                   required
                 />
               </div>
 
               <div className="form-field">
-                <label className="form-label">E-post</label>
+                <label className="form-label">{emailLabel}</label>
                 <input
                   type="email"
                   className="text-input"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="din@epost.no"
+                  placeholder={emailPlaceholder}
                   required
                 />
               </div>
 
               <div className="form-field">
-                <label className="form-label">Telefon</label>
+                <label className="form-label">{phoneLabel}</label>
                 <input
                   type="tel"
                   className="text-input"
                   value={telefon}
                   onChange={(e) => setTelefon(e.target.value)}
-                  placeholder="Mobilnummer"
+                  placeholder={phonePlaceholder}
                 />
               </div>
 
               <div className="form-field">
-                <label className="form-label">Passord</label>
+                <label className="form-label">{passwordLabel}</label>
                 <input
                   type="password"
                   className="text-input"
                   value={passord}
                   onChange={(e) => setPassord(e.target.value)}
-                  placeholder="Velg et passord"
+                  placeholder={passwordPlaceholder}
                   required
                 />
               </div>
 
               <button type="submit" className="login-button form-submit">
-                Registrer deg ➕
+                {submitText}
               </button>
             </form>
 
             <button type="button" className="helper-link" onClick={onBack}>
-              ⟵ Tilbake til forsiden
+              {backText}
             </button>
           </section>
         </main>

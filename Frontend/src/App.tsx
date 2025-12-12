@@ -7,134 +7,140 @@ import ResetPasswordPage from "./resetPasswordPage";
 import ParentDashboard from "./parentDashboard";
 import StaffDashboard from "./staffDashboard";
 
+import SettingsBar from "./settingsBar";
+import { useThemeLanguage } from "./ThemeLanguageContext";
+import "./theme.css";
+
 type View =
-    | "registrerBarnehage"
-    | "barnehageVelkommen"
-    | "login"
-    | "register"
-    | "resetPassword"
-    | "parentDashboard"
-    | "staffDashboard";
-
-
-export interface LoggedInParent {
-    id: number;
-    fullName: string;
-}
-
-
-export interface LoggedInStaff {
-    id: number;
-    fullName: string;
-}
+  | "registrerBarnehage"
+  | "barnehageVelkommen"
+  | "login"
+  | "register"
+  | "resetPassword"
+  | "parentDashboard"
+  | "staffDashboard";
 
 export default function App() {
-    const [view, setView] = useState<View>("registrerBarnehage");
-    const [barnehageNavn, setBarnehageNavn] = useState("Eventyrhagen Barnehage");
+  const [view, setView] = useState<View>("registrerBarnehage");
+  const [barnehageNavn, setBarnehageNavn] = useState("Eventyrhagen Barnehage");
 
-    const [parentName, setParentName] = useState("Lise");
-    const [parentId, setParentId] = useState<number | null>(null);
+  const [parentName, setParentName] = useState("Lise");
+  const [staffName, setStaffName] = useState("Ansatt");
 
-    const [staffName, setStaffName] = useState("Ansatt");
-    const [staffId, setStaffId] = useState<number | null>(null);
+  const { theme } = useThemeLanguage();
+  //const isNb = language === "nb";
 
-    const handleBarnehageRegistrert = () => {
-        setBarnehageNavn("Eventyrhagen Barnehage");
-        setView("barnehageVelkommen");
-    };
+  const handleBarnehageRegistrert = () => {
+    setBarnehageNavn("Eventyrhagen Barnehage");
+    setView("barnehageVelkommen");
+  };
 
-    const handleTilbakeTilKode = () => {
-        setView("registrerBarnehage");
-    };
+  const handleTilbakeTilKode = () => {
+    setView("registrerBarnehage");
+  };
 
-    const goToLogin = () => setView("login");
-    const goToRegister = () => setView("register");
-    const goToResetPassword = () => setView("resetPassword");
-    const backToWelcome = () => setView("barnehageVelkommen");
+  const goToLogin = () => setView("login");
+  const goToRegister = () => setView("register");
+  const goToResetPassword = () => setView("resetPassword");
+  const backToWelcome = () => setView("barnehageVelkommen");
 
+  // 👉 foresatt
+  const handleParentLoggedIn = (user: any) => {
+    if (user && user.name) {
+      setParentName(capitalize(user.name));
+    }
+    setView("parentDashboard");
+  };
 
-    const handleParentLoggedIn = (user: LoggedInParent) => {
-        setParentId(user.id);
-        setParentName(user.fullName);
-        setView("parentDashboard");
-    };
+  // 👉 ansatt
+  const handleStaffLoggedIn = (user: any) => {
+    if (user && user.name) {
+      setStaffName(capitalize(user.name));
+    }
+    setView("staffDashboard");
+  };
 
+  const handleLogoutToWelcome = () => {
+    setView("barnehageVelkommen");
+  };
 
-    const handleStaffLoggedIn = (user: LoggedInStaff) => {
-        setStaffId(user.id);
-        setStaffName(user.fullName);
-        setView("staffDashboard");
-    };
+  return (
+    <div className={`app-root theme-${theme}`}>
+      {/* Dette er "siden som snakker med alle": */}
+      <SettingsBar />
 
-    const handleLogoutToWelcome = () => {
-        setView("barnehageVelkommen");
-    };
-
-    return (() => {
+      {/* Her er resten av appen din uendret, bare inni en switch */}
+      {(() => {
         switch (view) {
-            case "registrerBarnehage":
-                return (
-                    <Forside onBarnehageRegistrert={handleBarnehageRegistrert} />
-                );
+          case "registrerBarnehage":
+            return (
+              <Forside onBarnehageRegistrert={handleBarnehageRegistrert} />
+            );
 
-            case "barnehageVelkommen":
-                return (
-                    <BarnehageSide
-                        barnehageNavn={barnehageNavn}
-                        onTilbakeTilKode={handleTilbakeTilKode}
-                        onGoToLogin={goToLogin}
-                        onGoToRegister={goToRegister}
-                        onGoToReset={goToResetPassword}
-                    />
-                );
+          case "barnehageVelkommen":
+            return (
+              <BarnehageSide
+                barnehageNavn={barnehageNavn}
+                onTilbakeTilKode={handleTilbakeTilKode}
+                onGoToLogin={goToLogin}
+                onGoToRegister={goToRegister}
+                onGoToReset={goToResetPassword}
+              />
+            );
 
-            case "login":
-                return (
-                    <LoginPage
-                        barnehageNavn={barnehageNavn}
-                        onBack={backToWelcome}
-                        onParentLoggedIn={handleParentLoggedIn}
-                        onStaffLoggedIn={handleStaffLoggedIn}
-                    />
-                );
+          case "login":
+            return (
+              <LoginPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+                onParentLoggedIn={handleParentLoggedIn}
+                onStaffLoggedIn={handleStaffLoggedIn}
+              />
+            );
 
-            case "register":
-                return (
-                    <RegisterPage
-                        barnehageNavn={barnehageNavn}
-                        onBack={backToWelcome}
-                    />
-                );
+          case "register":
+            return (
+              <RegisterPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+              />
+            );
 
-            case "resetPassword":
-                return (
-                    <ResetPasswordPage
-                        barnehageNavn={barnehageNavn}
-                        onBack={backToWelcome}
-                    />
-                );
+          case "resetPassword":
+            return (
+              <ResetPasswordPage
+                barnehageNavn={barnehageNavn}
+                onBack={backToWelcome}
+              />
+            );
 
-            case "parentDashboard":
-                return (
-                    <ParentDashboard
-                        parentId={parentId!}
-                        parentName={parentName}
-                        onLogout={handleLogoutToWelcome}
-                    />
-                );
+          case "parentDashboard":
+            return (
+              <ParentDashboard
+                parentName={parentName}
+                onLogout={handleLogoutToWelcome}
+              />
+            );
 
-            case "staffDashboard":
-                return (
-                    <StaffDashboard
-                        staffName={staffName}
-                        staffId={staffId!}
-                        onLogout={handleLogoutToWelcome}
-                    />
-                );
+          case "staffDashboard":
+            return (
+              <StaffDashboard
+                staffName={staffName}
+                onLogout={handleLogoutToWelcome}
+              />
+            );
 
-            default:
-                return null;
+          default:
+            return null;
         }
-    })();
+      })()}
+    </div>
+  );
+}
+
+/** Liten hjelpefunksjon – valgfri, bare for å gjøre navnet pent */
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
