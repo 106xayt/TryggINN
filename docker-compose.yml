@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    container_name: trygginn-db
+    environment:
+      POSTGRES_DB: trygginn
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: trygginn
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./Backend
+    container_name: trygginn-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/trygginn
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: trygginn
+      SPRING_SQL_INIT_MODE: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
