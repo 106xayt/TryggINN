@@ -1559,7 +1559,7 @@ const ParentDashboard = ({
 
 
 
-    setChildren((prev) =>
+        setChildren((prev) =>
             prev.map((child) => {
                 if (child.id !== activeChild.id) return child;
 
