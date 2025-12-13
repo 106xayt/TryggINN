@@ -1,4 +1,3 @@
-// Frontend/src/ParentDashboard.tsx
 import { useState, useEffect } from "react";
 import "./forside.css";
 import "./parentsDashboard.css";
@@ -67,7 +66,7 @@ interface ParentDashboardProps {
     onLogout: () => void;
 }
 
-/* ---- Backend-respons ----- */
+/* ---- Backend-respons ---- */
 
 interface BackendChild {
     id: number;
@@ -431,7 +430,7 @@ const CheckInPage = ({
                 </div>
             </div>
 
-
+            {/* Henteplan */}
             <div className="pickup-section">
                 <p className="pickup-title">Hvem henter i barnehagen?</p>
                 <div className="checkin-extra-fields">
@@ -457,7 +456,7 @@ const CheckInPage = ({
                 </div>
             </div>
 
-
+            {/* Aktiviteter */}
             <div className="checkin-activities">
                 <p className="checkin-activities-title">
                     Se hva {child.name} har gjort
@@ -484,7 +483,7 @@ const CheckInPage = ({
                 </div>
             </div>
 
-
+            {/* Neste hendelser */}
             {upcomingEvents.length > 0 && (
                 <div className="calendar-section">
                     <p className="calendar-title">Kommende i barnehagen</p>
@@ -521,7 +520,7 @@ const CheckInPage = ({
     );
 };
 
-
+/* ========= Galleri-side for aktiviteter ========= */
 
 interface ActivityGalleryProps {
     child: Child;
@@ -569,7 +568,7 @@ const ActivityGalleryPage = ({
     );
 };
 
-
+/* ========= Kalender-side (fullvisning) ========= */
 
 interface CalendarPageProps {
     events: KindergartenEvent[];
@@ -657,7 +656,7 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
     );
 };
 
-
+/* ========= Profil-side for foresatt ========= */
 
 interface ProfilePageProps {
     parentProfile: ParentProfile;
@@ -676,8 +675,7 @@ const ProfilePage = ({
                          onBack,
                          onPasswordReset,
                      }: ProfilePageProps) => {
-    const [localParent, setLocalParent] =
-        useState<ParentProfile>(parentProfile);
+    const [localParent, setLocalParent] = useState<ParentProfile>(parentProfile);
     const [localChildren, setLocalChildren] = useState<Child[]>(children);
 
     const [newPassword, setNewPassword] = useState("");
@@ -752,7 +750,7 @@ const ProfilePage = ({
         <section className="profile-page">
             <h1 className="profile-title">Min profil</h1>
 
-
+            {/* Foresatt-info */}
             <div className="profile-section">
                 <button
                     type="button"
@@ -813,7 +811,7 @@ const ProfilePage = ({
                 )}
             </div>
 
-
+            {/* Passord */}
             <div className="profile-section">
                 <button
                     type="button"
@@ -869,7 +867,7 @@ const ProfilePage = ({
                 )}
             </div>
 
-
+            {/* Barn-liste */}
             <div className="profile-section">
                 <button
                     type="button"
@@ -933,11 +931,7 @@ const ProfilePage = ({
                                                 className="text-input"
                                                 value={child.allergies ?? ""}
                                                 onChange={(e) =>
-                                                    handleChildChange(
-                                                        index,
-                                                        "allergies",
-                                                        e.target.value
-                                                    )
+                                                    handleChildChange(index, "allergies", e.target.value)
                                                 }
                                                 placeholder="F.eks. nøtter, melk, pollen"
                                             />
@@ -950,11 +944,7 @@ const ProfilePage = ({
                                                 className="text-input"
                                                 value={child.department ?? ""}
                                                 onChange={(e) =>
-                                                    handleChildChange(
-                                                        index,
-                                                        "department",
-                                                        e.target.value
-                                                    )
+                                                    handleChildChange(index, "department", e.target.value)
                                                 }
                                                 placeholder="F.eks. Rød, Blå, Løvene"
                                             />
@@ -967,11 +957,7 @@ const ProfilePage = ({
                                                 className="text-input"
                                                 value={child.otherInfo ?? ""}
                                                 onChange={(e) =>
-                                                    handleChildChange(
-                                                        index,
-                                                        "otherInfo",
-                                                        e.target.value
-                                                    )
+                                                    handleChildChange(index, "otherInfo", e.target.value)
                                                 }
                                                 placeholder="Henting, språk, spesielle beskjeder..."
                                             />
@@ -1003,15 +989,9 @@ const ProfilePage = ({
     );
 };
 
+/* ========= Selve dashboardet ========= */
 
-
-type ActiveView =
-    | "list"
-    | "info"
-    | "checkIn"
-    | "gallery"
-    | "calendar"
-    | "profile";
+type ActiveView = "list" | "info" | "checkIn" | "gallery" | "calendar" | "profile";
 
 interface CheckInSuccessData {
     childName: string;
@@ -1019,7 +999,7 @@ interface CheckInSuccessData {
     time: string;
 }
 
-
+/* --- Backend-kall --- */
 
 async function fetchChildrenForGuardian(
     guardianId: number
@@ -1058,7 +1038,6 @@ async function postVacationRange(params: {
         throw new Error(`Feil ved registrering av ferie: ${res.status}`);
     }
 }
-
 
 async function fetchLatestAttendanceForChild(
     childId: number
@@ -1100,7 +1079,6 @@ async function postAttendanceEvent(params: {
         throw new Error(`Feil ved registrering av attendance: ${res.status}`);
     }
 }
-
 
 async function postAbsence(params: {
     childId: number;
@@ -1165,7 +1143,6 @@ async function updateChildDetailsOnServer(child: Child): Promise<void> {
     }
 }
 
-
 async function fetchUserProfile(
     userId: number
 ): Promise<BackendUserProfile> {
@@ -1214,9 +1191,7 @@ const ParentDashboard = ({
         null
     );
 
-    const [calendarEvents, setCalendarEvents] = useState<KindergartenEvent[]>(
-        []
-    );
+    const [calendarEvents, setCalendarEvents] = useState<KindergartenEvent[]>([]);
     const [todayReminder, setTodayReminder] = useState<string | null>(null);
 
     const [checkInSuccess, setCheckInSuccess] =
@@ -1274,7 +1249,6 @@ const ParentDashboard = ({
                     })
                 );
 
-                // 2) Hent barnedetaljer (allergier / annet)
                 const withDetails: Child[] = await Promise.all(
                     withStatus.map(async (child) => {
                         try {
@@ -1293,14 +1267,12 @@ const ParentDashboard = ({
 
                 setChildren(withDetails);
 
-                // Kalender / påminnelser (dummy for nå)
                 setCalendarEvents([]);
                 setTodayReminder(null);
             } catch (e) {
                 console.error("Feil ved henting av barnsdata", e);
             }
 
-            // 3) Last foreldreprofil
             try {
                 const profile = await fetchUserProfile(parentId);
                 setParentProfile({
@@ -1411,7 +1383,6 @@ const ParentDashboard = ({
         });
         const todayISO = new Date().toISOString().slice(0, 10);
 
-        // --- kall backend ---
         if (option === "present") {
             try {
                 await postAttendanceEvent({
@@ -1463,101 +1434,6 @@ const ParentDashboard = ({
                 return;
             }
         }
-
-        // --- oppdater lokal state ---
-        setChildren((prev) =>
-            prev.map((child) => {
-                if (child.id !== activeChild.id) return child;
-
-                let updatedChild: Child = { ...child };
-
-                if (option === "present") {
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "checkedIn",
-                        lastCheckIn: timeStr,
-                        note: `Krysset inn ${timeStr}`,
-                        absenceDate: undefined,
-                        absenceNote: undefined,
-                        holidayFrom: undefined,
-                        holidayTo: undefined,
-                    };
-                } else if (option === "absent") {
-                    const formattedDate = absenceDate
-                        ? new Date(absenceDate).toLocaleDateString("nb-NO")
-                        : "i dag";
-                    const noteText = absenceNote?.trim()
-                        ? ` – ${absenceNote.trim()}`
-                        : "";
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "notCheckedIn",
-                        lastCheckIn: undefined,
-                        absenceDate,
-                        absenceNote,
-                        holidayFrom: undefined,
-                        holidayTo: undefined,
-                        note: `Registrert fravær ${formattedDate}${noteText}`,
-                    };
-                } else {
-                    let dateRangeText = "";
-                    if (holidayFrom || holidayTo) {
-                        const fromText = holidayFrom
-                            ? new Date(holidayFrom).toLocaleDateString("nb-NO")
-                            : "?";
-                        const toText = holidayTo
-                            ? new Date(holidayTo).toLocaleDateString("nb-NO")
-                            : "?";
-                        dateRangeText = ` (${fromText}–${toText})`;
-                    }
-
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "notCheckedIn",
-                        lastCheckIn: undefined,
-                        absenceDate: undefined,
-                        absenceNote: undefined,
-                        holidayFrom,
-                        holidayTo,
-                        note: `Registrert ferie${dateRangeText}`,
-                    };
-                }
-
-                // Henteplan
-                if (pickupNote && pickupNote.trim() && pickupDate) {
-                    const newPlan: PickupPlan = {
-                        id: Date.now(),
-                        date: pickupDate,
-                        note: pickupNote.trim(),
-                    };
-                    const existingPlans = updatedChild.pickupPlans ?? [];
-                    updatedChild.pickupPlans = [...existingPlans, newPlan];
-
-                    if (option === "present" && pickupDate === todayISO) {
-                        const baseNote = updatedChild.note ?? "";
-                        const extra =
-                            baseNote.length > 0
-                                ? ` – Henting: ${pickupNote.trim()}`
-                                : `Henting: ${pickupNote.trim()}`;
-                        updatedChild.note = baseNote + extra;
-                    }
-                }
-
-                return updatedChild;
-            })
-        );
-
-        if (option === "present") {
-            setCheckInSuccess({
-                childName: activeChild.name,
-                department: activeChild.department,
-                time: timeStr,
-            });
-        } else {
-            backToList();
-        }
-
-
 
         setChildren((prev) =>
             prev.map((child) => {
@@ -1712,7 +1588,7 @@ const ParentDashboard = ({
                 })
             )
         ).then(() => {
-
+            // kan evt. vise "lagret"-melding
         });
     };
 
@@ -1726,7 +1602,6 @@ const ParentDashboard = ({
                 alert(e.message || "Klarte ikke å endre passord.");
             });
     };
-
 
     const displayName = parentProfile.name || parentName;
 

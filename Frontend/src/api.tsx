@@ -13,15 +13,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     });
 
     if (!response.ok) {
+        let message = "Noe gikk galt ved kall mot serveren.";
+
         try {
             const body = await response.json();
             if (body && typeof body === "object" && "message" in body) {
-                throw new Error((body as any).message);
+                message = String((body as any).message);
             }
         } catch {
+            // ignorer hvis responsen ikke er JSON
         }
-        throw new Error("Noe gikk galt ved kall mot serveren.");
+
+        throw new Error(message);
     }
+
 
     if (response.status === 204) {
         return undefined as T;
@@ -143,10 +148,11 @@ export type AttendanceEventType = "IN" | "OUT";
 
 export interface RegisterAttendanceRequest {
     childId: number;
-    userId: number;
+    performedByUserId: number;
     eventType: AttendanceEventType;
     note?: string;
 }
+
 
 export function registerAttendance(data: RegisterAttendanceRequest) {
     return request<void>("/attendance", {
