@@ -33,8 +33,7 @@ public class AccessCodeService {
     public Daycare useAccessCode(String code, Long guardianUserId) {
         DaycareAccessCode accessCode = accessCodeRepository
                 .findByCodeAndActiveTrue(code)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Ugyldig eller deaktivert kode."));
+                .orElseThrow(() -> new IllegalArgumentException("Ugyldig eller deaktivert kode."));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -46,6 +45,15 @@ public class AccessCodeService {
             throw new IllegalStateException("Koden er allerede brukt opp.");
         }
 
+        Daycare daycare = accessCode.getDaycare();
+
+        // ✅ Ikke innlogget: bare valider koden og returner barnehagen.
+        // IKKE øk used_count, IKKE koble bruker.
+        if (guardianUserId == null) {
+            return daycare;
+        }
+
+        // ✅ Innlogget: koble forelder + konsumér en bruk
         User guardian = userRepository.findById(guardianUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke bruker."));
 
@@ -53,24 +61,18 @@ public class AccessCodeService {
             throw new IllegalStateException("Bare foreldre kan bruke barnehagekoder.");
         }
 
-        Daycare daycare = accessCode.getDaycare();
-
-
         boolean alreadyLinked = guardian.getDaycares().stream()
                 .anyMatch(d -> Objects.equals(d.getId(), daycare.getId()));
 
         if (!alreadyLinked) {
             guardian.getDaycares().add(daycare);
+            userRepository.save(guardian);
         }
-
 
         accessCode.setUsedCount(accessCode.getUsedCount() + 1);
         if (accessCode.getUsedCount() >= accessCode.getMaxUses()) {
             accessCode.setActive(false);
         }
-
-
-        userRepository.save(guardian);
         accessCodeRepository.save(accessCode);
 
         return daycare;

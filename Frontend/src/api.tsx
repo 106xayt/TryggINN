@@ -65,6 +65,30 @@ export function changePassword(
     });
 }
 
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  phoneNumber?: string | null;
+  password: string;
+}
+
+export interface RegisterResponse {
+  userId: number;
+  fullName: string;
+  email: string;
+  role: "PARENT" | "STAFF" | "ADMIN";
+  message: string;
+}
+
+export function registerParent(data: RegisterRequest): Promise<RegisterResponse> {
+  return request<RegisterResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+
+
 /* ---------- Access codes ---------- */
 
 export interface UseAccessCodeResponse {
@@ -74,14 +98,18 @@ export interface UseAccessCodeResponse {
 }
 
 export function useAccessCode(
-    code: string,
-    guardianUserId: number
+  code: string,
+  guardianUserId?: number | null
 ): Promise<UseAccessCodeResponse> {
-    return request<UseAccessCodeResponse>("/access-codes/use", {
-        method: "POST",
-        body: JSON.stringify({ code, guardianUserId }),
-    });
+  return request<UseAccessCodeResponse>("/access-codes/use", {
+    method: "POST",
+    body: JSON.stringify({
+      code,
+      guardianUserId: guardianUserId ?? null, // null = validate-only
+    }),
+  });
 }
+
 
 /* ---------- Barn / Children ---------- */
 

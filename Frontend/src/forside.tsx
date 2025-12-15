@@ -1,23 +1,20 @@
 import { useState, type FormEvent } from "react";
 import "./forside.css";
 import { useThemeLanguage } from "./ThemeLanguageContext";
+import { useAccessCode } from "./api";
 
 interface ForsideProps {
-  onBarnehageRegistrert: () => void;
+  onBarnehageRegistrert: (data: { daycareId: number; daycareName: string }) => void;
 }
 
 const Forside = ({ onBarnehageRegistrert }: ForsideProps) => {
   const [kode, setKode] = useState("");
 
-  // 👇 henter valgt språk fra "motoren"
   const { language } = useThemeLanguage();
   const isNb = language === "nb";
 
-  // Tekster for NO / EN
   const welcomeLine = isNb ? "Velkommen til" : "Welcome to";
-  const registerTitle = isNb
-    ? "Registrer din Barnehage"
-    : "Register your kindergarten";
+  const registerTitle = isNb ? "Registrer din Barnehage" : "Register your kindergarten";
   const registerText = isNb
     ? "Fyll ut barnehagekoden i feltet under for å få tilgang."
     : "Enter your kindergarten code in the field below to get access.";
@@ -27,17 +24,21 @@ const Forside = ({ onBarnehageRegistrert }: ForsideProps) => {
     ? "Skriv inn barnehagekoden for å fortsette."
     : "Please enter the kindergarten code to continue.";
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!kode.trim()) {
+    const trimmed = kode.trim();
+    if (!trimmed) {
       alert(emptyCodeAlert);
       return;
     }
 
-    // Her kan dere senere sjekke koden mot backend
-    // f.eks. await api.validateKindergartenCode(kode)
-    onBarnehageRegistrert();
+    try {
+      const res = await useAccessCode(trimmed);
+      onBarnehageRegistrert({ daycareId: res.daycareId, daycareName: res.daycareName });
+    } catch (err: any) {
+      alert(err?.message ?? "Ugyldig eller deaktivert kode.");
+    }
   };
 
   return (

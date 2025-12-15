@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from "react";
 import "./forside.css";
 import { useThemeLanguage } from "./ThemeLanguageContext";
+import { registerParent } from "./api";
+
 
 interface RegisterPageProps {
   barnehageNavn: string;
@@ -16,14 +18,25 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
   const { language } = useThemeLanguage();
   const isNb = language === "nb";
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    const payload = { navn, email, telefon, passord, barnehageNavn };
-    console.log("REGISTER payload:", payload);
+    try {
+      const res = await registerParent({
+        fullName: navn.trim(),
+        email: email.trim().toLowerCase(),
+        phoneNumber: telefon.trim() || null,
+        password: passord,
+      });
 
-    // senere:
-    // await api.registerForelder(payload)
+      console.log("REGISTER OK:", res);
+
+      alert(isNb ? "Bruker registrert! Du kan nå logge inn." : "User registered! You can now log in.");
+      onBack(); // tilbake til velkomst / login-flow hos deg
+    } catch (err: any) {
+      console.error("REGISTER ERROR:", err);
+      alert(err?.message || (isNb ? "Klarte ikke å registrere." : "Could not register."));
+    }
   };
 
   const titleTop = isNb ? "Registrer deg" : "Sign up";

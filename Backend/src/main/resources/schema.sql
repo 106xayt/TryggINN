@@ -226,5 +226,31 @@ VALUES
     (3, 1, 'STAFF'),
     (4, 1, 'ADMIN')
     ON CONFLICT DO NOTHING;
+-- -----------------------------------------------------------
+--  4) FIX SEQUENCES (important when inserting explicit IDs)
+--     Prevents "duplicate key value violates unique constraint ..._pkey"
+-- -----------------------------------------------------------
 
+SELECT setval(pg_get_serial_sequence('daycare', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM daycare), true);
 
+SELECT setval(pg_get_serial_sequence('users', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM users), true);
+
+SELECT setval(pg_get_serial_sequence('daycare_group', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM daycare_group), true);
+
+SELECT setval(pg_get_serial_sequence('children', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM children), true);
+
+SELECT setval(pg_get_serial_sequence('daycare_access_code', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM daycare_access_code), true);
+
+SELECT setval(pg_get_serial_sequence('attendance', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM attendance), true);
+
+SELECT setval(pg_get_serial_sequence('absence', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM absence), true);
+
+SELECT setval(pg_get_serial_sequence('vacation', 'id'),
+              (SELECT COALESCE(MAX(id), 1) FROM vacation), true);

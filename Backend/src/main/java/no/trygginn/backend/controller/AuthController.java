@@ -2,6 +2,8 @@ package no.trygginn.backend.controller;
 
 import no.trygginn.backend.controller.dto.LoginRequest;
 import no.trygginn.backend.controller.dto.LoginResponse;
+import no.trygginn.backend.controller.dto.RegisterRequest;
+import no.trygginn.backend.controller.dto.RegisterResponse;
 import no.trygginn.backend.model.User;
 import no.trygginn.backend.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /* ---------- LOGIN ---------- */
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
@@ -30,5 +33,27 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    /* ---------- REGISTER (FORELDER) ---------- */
+
+    @PostMapping("/register")
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
+        User user = authService.registerParent(
+                request.fullName(),
+                request.email(),
+                request.phoneNumber(),
+                request.password()
+        );
+
+        return ResponseEntity.ok(
+                new RegisterResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getRole().name(),
+                        "Bruker registrert"
+                )
+        );
     }
 }
