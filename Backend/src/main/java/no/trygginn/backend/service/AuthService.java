@@ -18,8 +18,6 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /* ---------- LOGIN ---------- */
-
     public User login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Feil e-post eller passord."));
@@ -42,8 +40,6 @@ public class AuthService {
 
         return user;
     }
-
-    /* ---------- REGISTER (FORELDER) ---------- */
 
     public User registerParent(
             String fullName,

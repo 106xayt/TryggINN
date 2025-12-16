@@ -32,8 +32,6 @@ public class Attendance {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // --- getters & setters ---
-
     public Long getId() {
         return id;
     }

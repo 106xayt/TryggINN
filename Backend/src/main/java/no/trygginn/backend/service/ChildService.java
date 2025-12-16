@@ -55,8 +55,8 @@ public class ChildService {
         Daycare daycare = group.getDaycare();
 
 
-        boolean guardianLinkedToDaycare = guardian.getDaycares().stream()
-                .anyMatch(d -> d.getId().equals(daycare.getId()));
+        boolean guardianLinkedToDaycare =
+                userRepository.isGuardianLinkedToDaycare(guardian.getId(), daycare.getId());
 
         if (!guardianLinkedToDaycare) {
             throw new IllegalStateException("Forelder er ikke koblet til denne barnehagen.");

@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
 import "./forside.css";
 import "./parentsDashboard.css";
-import { changePassword } from "./api";
+import {
+    changePassword,
+    getUserProfile,
+    updateUserProfile,
+    getCalendarEventsForDaycare,
+    type UserProfileResponse,
+    type CalendarEventResponse,
+} from "./api";
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "http://localhost:8080"; // brukes fortsatt av de "gamle" fetchene under (barn/attendance/etc)
 
 type ChildStatus = "notCheckedIn" | "checkedIn";
 
@@ -21,9 +28,12 @@ export interface PickupPlan {
 
 export interface KindergartenEvent {
     id: number;
-    date: string; // ISO-dato
+    date: string; // ISO datetime start
+    endDate?: string; // ISO datetime end
     title: string;
     description?: string;
+    location?: string | null;
+    scope?: string; // "Hele barnehagen" eller avdelingsnavn
 }
 
 export interface Child {
@@ -66,7 +76,7 @@ interface ParentDashboardProps {
     onLogout: () => void;
 }
 
-/* ---- Backend-respons ---- */
+/* ---- Backend-respons (for "gamle" fetcher) ---- */
 
 interface BackendChild {
     id: number;
@@ -97,15 +107,6 @@ interface BackendChildDetails {
     favoriteFood?: string;
 }
 
-// UserController
-interface BackendUserProfile {
-    id: number;
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-    role: string;
-}
-
 /* ---- Infoside for ett barn ---- */
 
 interface ChildInfoProps {
@@ -120,12 +121,9 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
         setOpenSection((prev) => (prev === section ? null : section));
     };
 
-    const allergiesText =
-        child.allergies?.trim() || "Ingen registrerte allergier.";
-    const departmentText =
-        child.department?.trim() || "Ingen avdeling registrert.";
-    const otherText =
-        child.otherInfo?.trim() || "Ingen ekstra informasjon registrert.";
+    const allergiesText = child.allergies?.trim() || "Ingen registrerte allergier.";
+    const departmentText = child.department?.trim() || "Ingen avdeling registrert.";
+    const otherText = child.otherInfo?.trim() || "Ingen ekstra informasjon registrert.";
 
     const firstLetter = child.name.trim().charAt(0).toUpperCase();
 
@@ -133,107 +131,65 @@ const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
         <section className="child-info-page">
             <div className="child-info-header">
                 {child.photoUrl ? (
-                    <img
-                        src={child.photoUrl}
-                        alt={`Bilde av ${child.name}`}
-                        className="child-info-avatar"
-                    />
+                    <img src={child.photoUrl} alt={`Bilde av ${child.name}`} className="child-info-avatar" />
                 ) : (
-                    <div className="child-info-avatar child-info-avatar--placeholder">
-                        {firstLetter}
-                    </div>
+                    <div className="child-info-avatar child-info-avatar--placeholder">{firstLetter}</div>
                 )}
 
                 <div>
                     <h1 className="child-info-title">{child.name}</h1>
-                    {child.department && (
-                        <p className="child-info-subtitle">Avdeling {child.department}</p>
-                    )}
+                    {child.department && <p className="child-info-subtitle">Avdeling {child.department}</p>}
                 </div>
             </div>
 
             <div className="child-info-box">
-                {/* Allergier */}
                 <div className="child-info-row">
-                    <button
-                        type="button"
-                        className="info-pill"
-                        onClick={() => toggleSection("allergies")}
-                    >
+                    <button type="button" className="info-pill" onClick={() => toggleSection("allergies")}>
             <span className="info-pill-emoji" aria-hidden="true">
               🥜
             </span>
                         <span className="info-pill-label">Allergier</span>
                         <span
-                            className={`info-pill-arrow ${
-                                openSection === "allergies" ? "info-pill-arrow--open" : ""
-                            }`}
+                            className={`info-pill-arrow ${openSection === "allergies" ? "info-pill-arrow--open" : ""}`}
                             aria-hidden="true"
                         >
               ▾
             </span>
                     </button>
-                    {openSection === "allergies" && (
-                        <p className="info-pill-text">{allergiesText}</p>
-                    )}
+                    {openSection === "allergies" && <p className="info-pill-text">{allergiesText}</p>}
                 </div>
 
-                {/* Avdeling */}
                 <div className="child-info-row">
-                    <button
-                        type="button"
-                        className="info-pill"
-                        onClick={() => toggleSection("department")}
-                    >
+                    <button type="button" className="info-pill" onClick={() => toggleSection("department")}>
             <span className="info-pill-emoji" aria-hidden="true">
               🏠
             </span>
                         <span className="info-pill-label">Avdeling</span>
                         <span
-                            className={`info-pill-arrow ${
-                                openSection === "department" ? "info-pill-arrow--open" : ""
-                            }`}
+                            className={`info-pill-arrow ${openSection === "department" ? "info-pill-arrow--open" : ""}`}
                             aria-hidden="true"
                         >
               ▾
             </span>
                     </button>
-                    {openSection === "department" && (
-                        <p className="info-pill-text">{departmentText}</p>
-                    )}
+                    {openSection === "department" && <p className="info-pill-text">{departmentText}</p>}
                 </div>
 
-                {/* Annet */}
                 <div className="child-info-row">
-                    <button
-                        type="button"
-                        className="info-pill"
-                        onClick={() => toggleSection("other")}
-                    >
+                    <button type="button" className="info-pill" onClick={() => toggleSection("other")}>
             <span className="info-pill-emoji" aria-hidden="true">
               ⭐
             </span>
                         <span className="info-pill-label">Annet</span>
-                        <span
-                            className={`info-pill-arrow ${
-                                openSection === "other" ? "info-pill-arrow--open" : ""
-                            }`}
-                            aria-hidden="true"
-                        >
+                        <span className={`info-pill-arrow ${openSection === "other" ? "info-pill-arrow--open" : ""}`} aria-hidden="true">
               ▾
             </span>
                     </button>
-                    {openSection === "other" && (
-                        <p className="info-pill-text">{otherText}</p>
-                    )}
+                    {openSection === "other" && <p className="info-pill-text">{otherText}</p>}
                 </div>
             </div>
 
-            <button
-                type="button"
-                className="login-button child-info-back-button"
-                onClick={onBack}
-            >
+            <button type="button" className="login-button child-info-back-button" onClick={onBack}>
                 Tilbake til &quot;Dine barn&quot;
             </button>
         </section>
@@ -271,8 +227,7 @@ const CheckInPage = ({
                          onOpenActivity,
                          onOpenCalendar,
                      }: CheckInPageProps) => {
-    const [selectedOption, setSelectedOption] =
-        useState<CheckInOption>("present");
+    const [selectedOption, setSelectedOption] = useState<CheckInOption>("present");
 
     const todayISO = new Date().toISOString().slice(0, 10);
 
@@ -303,31 +258,25 @@ const CheckInPage = ({
         { id: 3, label: "🎉 Bursdagsfeiring", photos: [] },
     ];
 
-    const activitiesToShow: ChildActivity[] =
-        child.activities && child.activities.length > 0
-            ? child.activities
-            : defaultActivities;
+    const activitiesToShow: ChildActivity[] = child.activities && child.activities.length > 0 ? child.activities : defaultActivities;
 
     const upcomingEvents: KindergartenEvent[] = (calendarEvents ?? [])
         .slice()
         .sort((a, b) => a.date.localeCompare(b.date))
-        .filter((evt) => evt.date >= todayISO)
+        .filter((evt) => evt.date.slice(0, 10) >= todayISO)
         .slice(0, 3);
 
     return (
         <section className="checkin-page">
             <h1 className="checkin-title">Kryss inn {child.name}</h1>
-            <p className="checkin-subtitle">
-                Trykk på knappen for å krysse inn {child.name}.
-            </p>
+            <p className="checkin-subtitle">Trykk på knappen for å krysse inn {child.name}.</p>
 
             <div className="checkin-card">
                 <div className="checkin-card-header">
                     <div>
                         <h2 className="checkin-child-name">{child.name}</h2>
                         <p className="checkin-child-subtitle">
-                            Trykk for å krysse inn →{" "}
-                            {child.department ? ` Avdeling ${child.department}` : ""}
+                            Trykk for å krysse inn → {child.department ? ` Avdeling ${child.department}` : ""}
                         </p>
                     </div>
                     <span className="checkin-status-badge">Borte</span>
@@ -337,17 +286,9 @@ const CheckInPage = ({
                     <button
                         type="button"
                         className="checkin-radio-row"
-                        onClick={() =>
-                            setSelectedOption((prev) =>
-                                prev === "absent" ? "present" : "absent"
-                            )
-                        }
+                        onClick={() => setSelectedOption((prev) => (prev === "absent" ? "present" : "absent"))}
                     >
-            <span
-                className={`radio-circle ${
-                    selectedOption === "absent" ? "radio-circle--selected" : ""
-                }`}
-            />
+                        <span className={`radio-circle ${selectedOption === "absent" ? "radio-circle--selected" : ""}`} />
                         <span className="checkin-radio-label">🚫 Registrer fravær</span>
                     </button>
 
@@ -355,17 +296,10 @@ const CheckInPage = ({
                         <div className="checkin-extra-fields">
                             <div className="checkin-field">
                                 <label className="checkin-field-label">Dato</label>
-                                <input
-                                    type="date"
-                                    className="checkin-field-input"
-                                    value={absenceDate}
-                                    onChange={(e) => setAbsenceDate(e.target.value)}
-                                />
+                                <input type="date" className="checkin-field-input" value={absenceDate} onChange={(e) => setAbsenceDate(e.target.value)} />
                             </div>
                             <div className="checkin-field">
-                                <label className="checkin-field-label">
-                                    Notat (f.eks. sykdom)
-                                </label>
+                                <label className="checkin-field-label">Notat (f.eks. sykdom)</label>
                                 <input
                                     type="text"
                                     className="checkin-field-input"
@@ -380,17 +314,9 @@ const CheckInPage = ({
                     <button
                         type="button"
                         className="checkin-radio-row"
-                        onClick={() =>
-                            setSelectedOption((prev) =>
-                                prev === "holiday" ? "present" : "holiday"
-                            )
-                        }
+                        onClick={() => setSelectedOption((prev) => (prev === "holiday" ? "present" : "holiday"))}
                     >
-            <span
-                className={`radio-circle ${
-                    selectedOption === "holiday" ? "radio-circle--selected" : ""
-                }`}
-            />
+                        <span className={`radio-circle ${selectedOption === "holiday" ? "radio-circle--selected" : ""}`} />
                         <span className="checkin-radio-label">🏝️ Legg inn ferie</span>
                     </button>
 
@@ -399,21 +325,11 @@ const CheckInPage = ({
                             <div className="checkin-field-row">
                                 <div className="checkin-field">
                                     <label className="checkin-field-label">Fra</label>
-                                    <input
-                                        type="date"
-                                        className="checkin-field-input"
-                                        value={holidayFrom}
-                                        onChange={(e) => setHolidayFrom(e.target.value)}
-                                    />
+                                    <input type="date" className="checkin-field-input" value={holidayFrom} onChange={(e) => setHolidayFrom(e.target.value)} />
                                 </div>
                                 <div className="checkin-field">
                                     <label className="checkin-field-label">Til</label>
-                                    <input
-                                        type="date"
-                                        className="checkin-field-input"
-                                        value={holidayTo}
-                                        onChange={(e) => setHolidayTo(e.target.value)}
-                                    />
+                                    <input type="date" className="checkin-field-input" value={holidayTo} onChange={(e) => setHolidayTo(e.target.value)} />
                                 </div>
                             </div>
                         </div>
@@ -430,18 +346,12 @@ const CheckInPage = ({
                 </div>
             </div>
 
-            {/* Henteplan */}
             <div className="pickup-section">
                 <p className="pickup-title">Hvem henter i barnehagen?</p>
                 <div className="checkin-extra-fields">
                     <div className="checkin-field">
                         <label className="checkin-field-label">Dato for henting</label>
-                        <input
-                            type="date"
-                            className="checkin-field-input"
-                            value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
-                        />
+                        <input type="date" className="checkin-field-input" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
                     </div>
                     <div className="checkin-field">
                         <label className="checkin-field-label">Melding om henting</label>
@@ -456,43 +366,28 @@ const CheckInPage = ({
                 </div>
             </div>
 
-            {/* Aktiviteter */}
             <div className="checkin-activities">
-                <p className="checkin-activities-title">
-                    Se hva {child.name} har gjort
-                </p>
+                <p className="checkin-activities-title">Se hva {child.name} har gjort</p>
                 <div className="checkin-activities-chips">
                     {activitiesToShow.map((activity) => (
-                        <button
-                            key={activity.id}
-                            type="button"
-                            className="activity-chip"
-                            onClick={() => onOpenActivity(activity)}
-                        >
+                        <button key={activity.id} type="button" className="activity-chip" onClick={() => onOpenActivity(activity)}>
                             {activity.label}
                         </button>
                     ))}
 
-                    <button
-                        type="button"
-                        className="activity-chip calendar-chip"
-                        onClick={onOpenCalendar}
-                    >
+                    <button type="button" className="activity-chip calendar-chip" onClick={onOpenCalendar}>
                         📅 Barnehagens kalender
                     </button>
                 </div>
             </div>
 
-            {/* Neste hendelser */}
             {upcomingEvents.length > 0 && (
                 <div className="calendar-section">
                     <p className="calendar-title">Kommende i barnehagen</p>
                     <ul className="calendar-list">
                         {upcomingEvents.map((evt) => (
                             <li key={evt.id} className="calendar-item">
-                <span className="calendar-date">
-                  {new Date(evt.date).toLocaleDateString("nb-NO")}
-                </span>
+                                <span className="calendar-date">{new Date(evt.date).toLocaleDateString("nb-NO")}</span>
                                 <span className="calendar-dot" />
                                 <span className="calendar-text">{evt.title}</span>
                             </li>
@@ -501,19 +396,11 @@ const CheckInPage = ({
                 </div>
             )}
 
-            <button
-                type="button"
-                className="login-button checkin-primary-button"
-                onClick={handleConfirm}
-            >
+            <button type="button" className="login-button checkin-primary-button" onClick={handleConfirm}>
                 Kryss inn {child.name} nå
             </button>
 
-            <button
-                type="button"
-                className="secondary-button checkin-back-button"
-                onClick={onBack}
-            >
+            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
                 Tilbake
             </button>
         </section>
@@ -528,40 +415,23 @@ interface ActivityGalleryProps {
     onBack: () => void;
 }
 
-const ActivityGalleryPage = ({
-                                 child,
-                                 activity,
-                                 onBack,
-                             }: ActivityGalleryProps) => {
+const ActivityGalleryPage = ({ child, activity, onBack }: ActivityGalleryProps) => {
     return (
         <section className="gallery-page">
             <h1 className="gallery-title">{activity.label}</h1>
-            <p className="gallery-subtitle">
-                Bilder lagt inn av ansatte for {child.name}.
-            </p>
+            <p className="gallery-subtitle">Bilder lagt inn av ansatte for {child.name}.</p>
 
             {activity.photos && activity.photos.length > 0 ? (
                 <div className="gallery-images">
                     {activity.photos.map((url, idx) => (
-                        <img
-                            key={idx}
-                            src={url}
-                            alt={`${activity.label} – bilde ${idx + 1}`}
-                            className="gallery-image"
-                        />
+                        <img key={idx} src={url} alt={`${activity.label} – bilde ${idx + 1}`} className="gallery-image" />
                     ))}
                 </div>
             ) : (
-                <p className="gallery-empty">
-                    Ingen bilder er lagt inn enda. Dette fylles fra ansatt-siden.
-                </p>
+                <p className="gallery-empty">Ingen bilder er lagt inn enda. Dette fylles fra ansatt-siden.</p>
             )}
 
-            <button
-                type="button"
-                className="secondary-button checkin-back-button"
-                onClick={onBack}
-            >
+            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
                 Tilbake
             </button>
         </section>
@@ -579,77 +449,60 @@ const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
     const todayISO = new Date().toISOString().slice(0, 10);
 
     const sortedEvents = events.slice().sort((a, b) => a.date.localeCompare(b.date));
+    const upcoming = sortedEvents.filter((e) => e.date.slice(0, 10) >= todayISO);
+    const past = sortedEvents.filter((e) => e.date.slice(0, 10) < todayISO);
 
-    const upcoming = sortedEvents.filter((e) => e.date >= todayISO);
-    const past = sortedEvents.filter((e) => e.date < todayISO);
+    const fmtDate = (iso: string) =>
+        new Date(iso).toLocaleDateString("nb-NO", { weekday: "short", year: "numeric", month: "short", day: "2-digit" });
+
+    const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+
+    const fmtRange = (start: string, end?: string) => {
+        const s = fmtTime(start);
+        if (!end) return s;
+        return `${s} – ${fmtTime(end)}`;
+    };
+
+    const Row = ({ evt }: { evt: KindergartenEvent }) => (
+        <li className="calendar-item calendar-item--full">
+            <span className="calendar-date">{fmtDate(evt.date)}</span>
+            <span className="calendar-dot" />
+            <div className="calendar-item-text">
+                <span className="calendar-text">{evt.title}</span>
+
+                <span className="calendar-description">⏰ {fmtRange(evt.date, evt.endDate)}</span>
+                <span className="calendar-description">🧩 Avdeling: {evt.scope ?? "Hele barnehagen"}</span>
+
+                {evt.location && <span className="calendar-description">📍 Sted: {evt.location}</span>}
+                {evt.description && <span className="calendar-description">{evt.description}</span>}
+            </div>
+        </li>
+    );
 
     return (
         <section className="calendar-page">
             <h1 className="calendar-page-title">Barnehagens kalender</h1>
-            <p className="calendar-page-subtitle">
-                Oversikt over planlagte aktiviteter og merkedager.
-            </p>
+            <p className="calendar-page-subtitle">Oversikt over planlagte aktiviteter og merkedager.</p>
 
             {sortedEvents.length === 0 && (
-                <p className="calendar-empty">
-                    Kalenderen er ikke fylt inn enda. Dette kommer fra barnehagens
-                    system.
-                </p>
+                <p className="calendar-empty">Kalenderen er ikke fylt inn enda. Dette kommer fra barnehagens system.</p>
             )}
 
             {upcoming.length > 0 && (
                 <div className="calendar-block">
                     <h2 className="calendar-block-title">Kommende</h2>
-                    <ul className="calendar-list">
-                        {upcoming.map((evt) => (
-                            <li key={evt.id} className="calendar-item calendar-item--full">
-                <span className="calendar-date">
-                  {new Date(evt.date).toLocaleDateString("nb-NO")}
-                </span>
-                                <span className="calendar-dot" />
-                                <div className="calendar-item-text">
-                                    <span className="calendar-text">{evt.title}</span>
-                                    {evt.description && (
-                                        <span className="calendar-description">
-                      {evt.description}
-                    </span>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <ul className="calendar-list">{upcoming.map((evt) => <Row key={evt.id} evt={evt} />)}</ul>
                 </div>
             )}
 
             {past.length > 0 && (
                 <div className="calendar-block">
                     <h2 className="calendar-block-title">Tidligere</h2>
-                    <ul className="calendar-list">
-                        {past.map((evt) => (
-                            <li key={evt.id} className="calendar-item calendar-item--full">
-                <span className="calendar-date">
-                  {new Date(evt.date).toLocaleDateString("nb-NO")}
-                </span>
-                                <span className="calendar-dot" />
-                                <div className="calendar-item-text">
-                                    <span className="calendar-text">{evt.title}</span>
-                                    {evt.description && (
-                                        <span className="calendar-description">
-                      {evt.description}
-                    </span>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <ul className="calendar-list">{past.map((evt) => <Row key={evt.id} evt={evt} />)}</ul>
                 </div>
             )}
 
-            <button
-                type="button"
-                className="secondary-button checkin-back-button"
-                onClick={onBack}
-            >
+            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
                 Tilbake
             </button>
         </section>
@@ -667,61 +520,37 @@ interface ProfilePageProps {
     onPasswordReset: (newPassword: string) => void;
 }
 
-const ProfilePage = ({
-                         parentProfile,
-                         onUpdateParentProfile,
-                         children,
-                         onUpdateChildren,
-                         onBack,
-                         onPasswordReset,
-                     }: ProfilePageProps) => {
+const ProfilePage = ({ parentProfile, onUpdateParentProfile, children, onUpdateChildren, onBack, onPasswordReset }: ProfilePageProps) => {
     const [localParent, setLocalParent] = useState<ParentProfile>(parentProfile);
     const [localChildren, setLocalChildren] = useState<Child[]>(children);
 
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    const [openSections, setOpenSections] = useState<{
-        parent: boolean;
-        password: boolean;
-        children: boolean;
-    }>({
+    const [openSections, setOpenSections] = useState<{ parent: boolean; password: boolean; children: boolean }>({
         parent: true,
         password: false,
         children: false,
     });
 
-    useEffect(() => {
-        setLocalParent(parentProfile);
-    }, [parentProfile]);
-
-    useEffect(() => {
-        setLocalChildren(children);
-    }, [children]);
+    useEffect(() => setLocalParent(parentProfile), [parentProfile]);
+    useEffect(() => setLocalChildren(children), [children]);
 
     const toggleSection = (key: keyof typeof openSections) => {
         setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const handleChildChange = (
-        index: number,
-        field: keyof Child,
-        value: string
-    ) => {
+    const handleChildChange = (index: number, field: keyof Child, value: string) => {
         setLocalChildren((prev) => {
             const copy = [...prev];
             const child = { ...copy[index] };
-            if (field === "name") {
-                child.name = value;
-            } else if (field === "allergies") {
-                child.allergies = value || undefined;
-            } else if (field === "department") {
-                child.department = value || undefined;
-            } else if (field === "otherInfo") {
-                child.otherInfo = value || undefined;
-            } else if (field === "photoUrl") {
-                child.photoUrl = value || undefined;
-            }
+
+            if (field === "name") child.name = value;
+            else if (field === "allergies") child.allergies = value || undefined;
+            else if (field === "department") child.department = value || undefined;
+            else if (field === "otherInfo") child.otherInfo = value || undefined;
+            else if (field === "photoUrl") child.photoUrl = value || undefined;
+
             copy[index] = child;
             return copy;
         });
@@ -750,21 +579,10 @@ const ProfilePage = ({
         <section className="profile-page">
             <h1 className="profile-title">Min profil</h1>
 
-            {/* Foresatt-info */}
             <div className="profile-section">
-                <button
-                    type="button"
-                    className="profile-section-header"
-                    onClick={() => toggleSection("parent")}
-                >
+                <button type="button" className="profile-section-header" onClick={() => toggleSection("parent")}>
                     <span className="profile-section-title">Foresatt</span>
-                    <span
-                        className={`profile-section-arrow ${
-                            openSections.parent ? "profile-section-arrow--open" : ""
-                        }`}
-                    >
-            ▾
-          </span>
+                    <span className={`profile-section-arrow ${openSections.parent ? "profile-section-arrow--open" : ""}`}>▾</span>
                 </button>
 
                 {openSections.parent && (
@@ -775,9 +593,7 @@ const ProfilePage = ({
                                 type="text"
                                 className="text-input"
                                 value={localParent.name}
-                                onChange={(e) =>
-                                    setLocalParent((p) => ({ ...p, name: e.target.value }))
-                                }
+                                onChange={(e) => setLocalParent((p) => ({ ...p, name: e.target.value }))}
                                 placeholder="Ditt navn"
                             />
                         </div>
@@ -788,9 +604,7 @@ const ProfilePage = ({
                                 type="email"
                                 className="text-input"
                                 value={localParent.email}
-                                onChange={(e) =>
-                                    setLocalParent((p) => ({ ...p, email: e.target.value }))
-                                }
+                                onChange={(e) => setLocalParent((p) => ({ ...p, email: e.target.value }))}
                                 placeholder="din.epost@eksempel.no"
                             />
                         </div>
@@ -801,9 +615,7 @@ const ProfilePage = ({
                                 type="tel"
                                 className="text-input"
                                 value={localParent.phone}
-                                onChange={(e) =>
-                                    setLocalParent((p) => ({ ...p, phone: e.target.value }))
-                                }
+                                onChange={(e) => setLocalParent((p) => ({ ...p, phone: e.target.value }))}
                                 placeholder="F.eks. 900 00 000"
                             />
                         </div>
@@ -811,28 +623,15 @@ const ProfilePage = ({
                 )}
             </div>
 
-            {/* Passord */}
             <div className="profile-section">
-                <button
-                    type="button"
-                    className="profile-section-header"
-                    onClick={() => toggleSection("password")}
-                >
+                <button type="button" className="profile-section-header" onClick={() => toggleSection("password")}>
                     <span className="profile-section-title">Passord</span>
-                    <span
-                        className={`profile-section-arrow ${
-                            openSections.password ? "profile-section-arrow--open" : ""
-                        }`}
-                    >
-            ▾
-          </span>
+                    <span className={`profile-section-arrow ${openSections.password ? "profile-section-arrow--open" : ""}`}>▾</span>
                 </button>
 
                 {openSections.password && (
                     <div className="profile-section-body">
-                        <p className="profile-section-hint">
-                            Her kan du be om å sette nytt passord.
-                        </p>
+                        <p className="profile-section-hint">Her kan du be om å sette nytt passord.</p>
 
                         <div className="form-field">
                             <label className="form-label">Nytt passord</label>
@@ -856,43 +655,23 @@ const ProfilePage = ({
                             />
                         </div>
 
-                        <button
-                            type="button"
-                            className="secondary-button full-width-secondary profile-password-button"
-                            onClick={handlePasswordSubmit}
-                        >
+                        <button type="button" className="secondary-button full-width-secondary profile-password-button" onClick={handlePasswordSubmit}>
                             Reset passord
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* Barn-liste */}
             <div className="profile-section">
-                <button
-                    type="button"
-                    className="profile-section-header"
-                    onClick={() => toggleSection("children")}
-                >
-          <span className="profile-section-title">
-            Barn ({localChildren.length})
-          </span>
-                    <span
-                        className={`profile-section-arrow ${
-                            openSections.children ? "profile-section-arrow--open" : ""
-                        }`}
-                    >
-            ▾
-          </span>
+                <button type="button" className="profile-section-header" onClick={() => toggleSection("children")}>
+                    <span className="profile-section-title">Barn ({localChildren.length})</span>
+                    <span className={`profile-section-arrow ${openSections.children ? "profile-section-arrow--open" : ""}`}>▾</span>
                 </button>
 
                 {openSections.children && (
                     <div className="profile-section-body">
                         {localChildren.length === 0 ? (
-                            <p className="profile-section-hint">
-                                Du har ingen registrerte barn enda. Legg til barn fra
-                                hovedsiden.
-                            </p>
+                            <p className="profile-section-hint">Du har ingen registrerte barn enda. Legg til barn fra hovedsiden.</p>
                         ) : (
                             <div className="profile-children-list">
                                 {localChildren.map((child, index) => (
@@ -901,14 +680,7 @@ const ProfilePage = ({
 
                                         <div className="form-field">
                                             <label className="form-label">Navn</label>
-                                            <input
-                                                type="text"
-                                                className="text-input"
-                                                value={child.name}
-                                                onChange={(e) =>
-                                                    handleChildChange(index, "name", e.target.value)
-                                                }
-                                            />
+                                            <input type="text" className="text-input" value={child.name} onChange={(e) => handleChildChange(index, "name", e.target.value)} />
                                         </div>
 
                                         <div className="form-field">
@@ -917,9 +689,7 @@ const ProfilePage = ({
                                                 type="url"
                                                 className="text-input"
                                                 value={child.photoUrl ?? ""}
-                                                onChange={(e) =>
-                                                    handleChildChange(index, "photoUrl", e.target.value)
-                                                }
+                                                onChange={(e) => handleChildChange(index, "photoUrl", e.target.value)}
                                                 placeholder="https://…"
                                             />
                                         </div>
@@ -930,9 +700,7 @@ const ProfilePage = ({
                                                 type="text"
                                                 className="text-input"
                                                 value={child.allergies ?? ""}
-                                                onChange={(e) =>
-                                                    handleChildChange(index, "allergies", e.target.value)
-                                                }
+                                                onChange={(e) => handleChildChange(index, "allergies", e.target.value)}
                                                 placeholder="F.eks. nøtter, melk, pollen"
                                             />
                                         </div>
@@ -943,9 +711,7 @@ const ProfilePage = ({
                                                 type="text"
                                                 className="text-input"
                                                 value={child.department ?? ""}
-                                                onChange={(e) =>
-                                                    handleChildChange(index, "department", e.target.value)
-                                                }
+                                                onChange={(e) => handleChildChange(index, "department", e.target.value)}
                                                 placeholder="F.eks. Rød, Blå, Løvene"
                                             />
                                         </div>
@@ -956,9 +722,7 @@ const ProfilePage = ({
                                                 type="text"
                                                 className="text-input"
                                                 value={child.otherInfo ?? ""}
-                                                onChange={(e) =>
-                                                    handleChildChange(index, "otherInfo", e.target.value)
-                                                }
+                                                onChange={(e) => handleChildChange(index, "otherInfo", e.target.value)}
                                                 placeholder="Henting, språk, spesielle beskjeder..."
                                             />
                                         </div>
@@ -970,19 +734,11 @@ const ProfilePage = ({
                 )}
             </div>
 
-            <button
-                type="button"
-                className="login-button profile-save-button"
-                onClick={handleSaveProfile}
-            >
+            <button type="button" className="login-button profile-save-button" onClick={handleSaveProfile}>
                 Lagre endringer
             </button>
 
-            <button
-                type="button"
-                className="secondary-button profile-back-button"
-                onClick={onBack}
-            >
+            <button type="button" className="secondary-button profile-back-button" onClick={onBack}>
                 Tilbake til &quot;Dine barn&quot;
             </button>
         </section>
@@ -999,32 +755,18 @@ interface CheckInSuccessData {
     time: string;
 }
 
-/* --- Backend-kall --- */
+/* --- Backend-kall (beholdt som før) --- */
 
-async function fetchChildrenForGuardian(
-    guardianId: number
-): Promise<BackendChild[]> {
-    const res = await fetch(
-        `${API_BASE_URL}/api/children/guardian/${guardianId}`
-    );
-    if (!res.ok) {
-        throw new Error(`Feil ved henting av barn: ${res.status}`);
-    }
+async function fetchChildrenForGuardian(guardianId: number): Promise<BackendChild[]> {
+    const res = await fetch(`${API_BASE_URL}/api/children/guardian/${guardianId}`);
+    if (!res.ok) throw new Error(`Feil ved henting av barn: ${res.status}`);
     return res.json();
 }
 
-async function postVacationRange(params: {
-    childId: number;
-    userId: number;
-    from: string;
-    to: string;
-    note?: string;
-}) {
+async function postVacationRange(params: { childId: number; userId: number; from: string; to: string; note?: string }) {
     const res: Response = await fetch(`${API_BASE_URL}/api/vacation`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             childId: params.childId,
             reportedByUserId: params.userId,
@@ -1034,168 +776,94 @@ async function postVacationRange(params: {
         }),
     });
 
-    if (!res.ok) {
-        throw new Error(`Feil ved registrering av ferie: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Feil ved registrering av ferie: ${res.status}`);
 }
 
-async function fetchLatestAttendanceForChild(
-    childId: number
-): Promise<BackendAttendance | null> {
-    const res = await fetch(
-        `${API_BASE_URL}/api/attendance/child/${childId}/latest`
-    );
-    if (res.status === 404) {
-        return null;
-    }
-    if (!res.ok) {
-        throw new Error(`Feil ved henting av attendance: ${res.status}`);
-    }
+async function fetchLatestAttendanceForChild(childId: number): Promise<BackendAttendance | null> {
+    const res = await fetch(`${API_BASE_URL}/api/attendance/child/${childId}/latest`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Feil ved henting av attendance: ${res.status}`);
     return res.json();
 }
 
-async function postAttendanceEvent(params: {
-    childId: number;
-    userId: number;
-    eventType: "IN" | "OUT";
-    note?: string;
-}) {
-    const payload = {
-        childId: params.childId,
-        performedByUserId: params.userId,
-        eventType: params.eventType,
-        note: params.note,
-    };
-
+async function postAttendanceEvent(params: { childId: number; userId: number; eventType: "IN" | "OUT"; note?: string }) {
     const res = await fetch(`${API_BASE_URL}/api/attendance`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            childId: params.childId,
+            performedByUserId: params.userId,
+            eventType: params.eventType,
+            note: params.note,
+        }),
     });
 
-    if (!res.ok) {
-        throw new Error(`Feil ved registrering av attendance: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Feil ved registrering av attendance: ${res.status}`);
 }
 
-async function postAbsence(params: {
-    childId: number;
-    userId: number;
-    date: string;
-    reason: string;
-    note?: string;
-}) {
-    const payload = {
-        childId: params.childId,
-        reportedByUserId: params.userId,
-        date: params.date,
-        reason: params.reason,
-        note: params.note ?? params.reason,
-    };
-
+async function postAbsence(params: { childId: number; userId: number; date: string; reason: string; note?: string }) {
     const res = await fetch(`${API_BASE_URL}/api/absence`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            childId: params.childId,
+            reportedByUserId: params.userId,
+            date: params.date,
+            reason: params.reason,
+            note: params.note ?? params.reason,
+        }),
     });
 
-    if (!res.ok) {
-        throw new Error(`Feil ved registrering av fravær: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Feil ved registrering av fravær: ${res.status}`);
 }
 
-async function fetchChildDetails(
-    childId: number
-): Promise<BackendChildDetails> {
-    const res = await fetch(
-        `${API_BASE_URL}/api/children/${childId}/details`
-    );
-    if (!res.ok) {
-        throw new Error(`Feil ved henting av barnedetaljer: ${res.status}`);
-    }
+async function fetchChildDetails(childId: number): Promise<BackendChildDetails> {
+    const res = await fetch(`${API_BASE_URL}/api/children/${childId}/details`);
+    if (!res.ok) throw new Error(`Feil ved henting av barnedetaljer: ${res.status}`);
     return res.json();
 }
 
 async function updateChildDetailsOnServer(child: Child): Promise<void> {
-    const payload = {
-        allergies: child.allergies ?? "",
-        medications: "",
-        favoriteFood: child.otherInfo ?? "",
-    };
-
-    const res = await fetch(
-        `${API_BASE_URL}/api/children/${child.id}/details`,
-        {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-        }
-    );
-
-    if (!res.ok) {
-        throw new Error(`Feil ved oppdatering av barnedetaljer: ${res.status}`);
-    }
-}
-
-async function fetchUserProfile(
-    userId: number
-): Promise<BackendUserProfile> {
-    const res = await fetch(`${API_BASE_URL}/api/users/${userId}`);
-    if (!res.ok) {
-        throw new Error(`Feil ved henting av brukerprofil: ${res.status}`);
-    }
-    return res.json();
-}
-
-async function updateUserProfileOnServer(
-    userId: number,
-    profile: ParentProfile
-): Promise<BackendUserProfile> {
-    const payload = {
-        fullName: profile.name,
-        email: profile.email,
-        phoneNumber: profile.phone,
-    };
-
-    const res = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+    const res = await fetch(`${API_BASE_URL}/api/children/${child.id}/details`, {
         method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            allergies: child.allergies ?? "",
+            medications: "",
+            favoriteFood: child.otherInfo ?? "",
+        }),
     });
 
-    if (!res.ok) {
-        throw new Error(`Feil ved oppdatering av brukerprofil: ${res.status}`);
-    }
-
-    return res.json();
+    if (!res.ok) throw new Error(`Feil ved oppdatering av barnedetaljer: ${res.status}`);
 }
 
-const ParentDashboard = ({
-                             parentId,
-                             parentName,
-                             onLogout,
-                         }: ParentDashboardProps) => {
+/* --- Kalender mapping --- */
+
+function mapCalendarEventsToKindergarten(events: CalendarEventResponse[]): KindergartenEvent[] {
+    return events.map((e) => ({
+        id: e.id,
+        date: e.startTime,
+        endDate: e.endTime ?? undefined,
+        title: e.title,
+        scope: e.daycareGroupName?.trim() ? e.daycareGroupName : "Hele barnehagen",
+        location: e.location?.trim() ? e.location : null,
+        description: e.description?.trim() ? e.description : undefined,
+    }));
+}
+
+/* ======= ParentDashboard ======= */
+
+const ParentDashboard = ({ parentId, parentName, onLogout }: ParentDashboardProps) => {
     const [children, setChildren] = useState<Child[]>([]);
 
     const [activeChild, setActiveChild] = useState<Child | null>(null);
     const [activeView, setActiveView] = useState<ActiveView>("list");
-    const [activeActivity, setActiveActivity] = useState<ChildActivity | null>(
-        null
-    );
+    const [activeActivity, setActiveActivity] = useState<ChildActivity | null>(null);
 
     const [calendarEvents, setCalendarEvents] = useState<KindergartenEvent[]>([]);
     const [todayReminder, setTodayReminder] = useState<string | null>(null);
 
-    const [checkInSuccess, setCheckInSuccess] =
-        useState<CheckInSuccessData | null>(null);
+    const [checkInSuccess, setCheckInSuccess] = useState<CheckInSuccessData | null>(null);
 
     const [parentProfile, setParentProfile] = useState<ParentProfile>({
         name: parentName,
@@ -1203,10 +871,19 @@ const ParentDashboard = ({
         phone: "",
     });
 
+    // Vi finner daycareId basert på første barn som hentes (fallback 1)
+    const [daycareId, setDaycareId] = useState<number>(1);
+
     useEffect(() => {
         const loadData = async () => {
             try {
                 const backendChildren = await fetchChildrenForGuardian(parentId);
+
+                if (backendChildren.length > 0 && backendChildren[0].daycareId) {
+                    setDaycareId(backendChildren[0].daycareId);
+                } else {
+                    setDaycareId(1);
+                }
 
                 const mappedChildren: Child[] = backendChildren.map((bc) => ({
                     id: bc.id,
@@ -1220,28 +897,18 @@ const ParentDashboard = ({
                     mappedChildren.map(async (child) => {
                         try {
                             const att = await fetchLatestAttendanceForChild(child.id);
-                            if (!att) {
-                                return child;
-                            }
-                            const timeStr = new Date(att.eventTime).toLocaleTimeString(
-                                "nb-NO",
-                                { hour: "2-digit", minute: "2-digit" }
-                            );
+                            if (!att) return child;
+
+                            const timeStr = new Date(att.eventTime).toLocaleTimeString("nb-NO", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            });
+
                             if (att.eventType === "IN") {
-                                return {
-                                    ...child,
-                                    status: "checkedIn",
-                                    lastCheckIn: timeStr,
-                                    note: `Krysset inn ${timeStr}`,
-                                };
-                            } else {
-                                return {
-                                    ...child,
-                                    status: "notCheckedIn",
-                                    lastCheckIn: undefined,
-                                    note: `Sist registrert: ute ${timeStr}`,
-                                };
+                                return { ...child, status: "checkedIn", lastCheckIn: timeStr, note: `Krysset inn ${timeStr}` };
                             }
+
+                            return { ...child, status: "notCheckedIn", lastCheckIn: undefined, note: `Sist registrert: ute ${timeStr}` };
                         } catch (e) {
                             console.error("Klarte ikke hente attendance for barn", e);
                             return child;
@@ -1266,15 +933,14 @@ const ParentDashboard = ({
                 );
 
                 setChildren(withDetails);
-
-                setCalendarEvents([]);
                 setTodayReminder(null);
             } catch (e) {
                 console.error("Feil ved henting av barnsdata", e);
             }
 
+            // Profil
             try {
-                const profile = await fetchUserProfile(parentId);
+                const profile: UserProfileResponse = await getUserProfile(parentId);
                 setParentProfile({
                     name: profile.fullName ?? parentName,
                     email: profile.email ?? "",
@@ -1288,6 +954,21 @@ const ParentDashboard = ({
         loadData();
     }, [parentId, parentName]);
 
+    // Hent kalender (når daycareId er kjent / endrer seg)
+    useEffect(() => {
+        const loadCalendar = async () => {
+            try {
+                const events = await getCalendarEventsForDaycare(daycareId);
+                setCalendarEvents(mapCalendarEventsToKindergarten(events));
+            } catch (e) {
+                console.error("Feil ved henting av kalender", e);
+                setCalendarEvents([]);
+            }
+        };
+
+        void loadCalendar();
+    }, [daycareId]);
+
     const toggleCheckStatusDirect = async (id: number) => {
         const child = children.find((c) => c.id === id);
         if (!child) return;
@@ -1295,19 +976,14 @@ const ParentDashboard = ({
         const isCheckedIn = child.status === "checkedIn";
         const eventType: "IN" | "OUT" = isCheckedIn ? "OUT" : "IN";
         const now = new Date();
-        const timeStr = now.toLocaleTimeString("nb-NO", {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+        const timeStr = now.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
 
         try {
             await postAttendanceEvent({
                 childId: id,
                 userId: parentId,
                 eventType,
-                note: isCheckedIn
-                    ? "Forelder sjekket ut via app"
-                    : "Forelder sjekket inn via app",
+                note: isCheckedIn ? "Forelder sjekket ut via app" : "Forelder sjekket inn via app",
             });
 
             setChildren((prev) =>
@@ -1317,9 +993,7 @@ const ParentDashboard = ({
                             ...c,
                             status: isCheckedIn ? "notCheckedIn" : "checkedIn",
                             lastCheckIn: isCheckedIn ? undefined : timeStr,
-                            note: isCheckedIn
-                                ? "Ikke krysset inn ennå"
-                                : `Krysset inn ${timeStr}`,
+                            note: isCheckedIn ? "Ikke krysset inn ennå" : `Krysset inn ${timeStr}`,
                             absenceDate: undefined,
                             absenceNote: undefined,
                             holidayFrom: undefined,
@@ -1366,21 +1040,10 @@ const ParentDashboard = ({
     }) => {
         if (!activeChild) return;
 
-        const {
-            option,
-            absenceDate,
-            absenceNote,
-            holidayFrom,
-            holidayTo,
-            pickupDate,
-            pickupNote,
-        } = data;
+        const { option, absenceDate, absenceNote, holidayFrom, holidayTo, pickupDate, pickupNote } = data;
 
         const now = new Date();
-        const timeStr = now.toLocaleTimeString("nb-NO", {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+        const timeStr = now.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
         const todayISO = new Date().toISOString().slice(0, 10);
 
         if (option === "present") {
@@ -1399,9 +1062,7 @@ const ParentDashboard = ({
         } else if (option === "absent") {
             try {
                 const dateToSend = absenceDate || todayISO;
-                const noteText =
-                    absenceNote?.trim() || "Fravær registrert via app";
-
+                const noteText = absenceNote?.trim() || "Fravær registrert via app";
                 await postAbsence({
                     childId: activeChild.id,
                     userId: parentId,
@@ -1420,7 +1081,6 @@ const ParentDashboard = ({
                     alert("Velg både fra- og tildato for ferie.");
                     return;
                 }
-
                 await postVacationRange({
                     childId: activeChild.id,
                     userId: parentId,
@@ -1453,12 +1113,8 @@ const ParentDashboard = ({
                         holidayTo: undefined,
                     };
                 } else if (option === "absent") {
-                    const formattedDate = absenceDate
-                        ? new Date(absenceDate).toLocaleDateString("nb-NO")
-                        : "i dag";
-                    const noteText = absenceNote?.trim()
-                        ? ` – ${absenceNote.trim()}`
-                        : "";
+                    const formattedDate = absenceDate ? new Date(absenceDate).toLocaleDateString("nb-NO") : "i dag";
+                    const noteText = absenceNote?.trim() ? ` – ${absenceNote.trim()}` : "";
                     updatedChild = {
                         ...updatedChild,
                         status: "notCheckedIn",
@@ -1472,15 +1128,10 @@ const ParentDashboard = ({
                 } else {
                     let dateRangeText = "";
                     if (holidayFrom || holidayTo) {
-                        const fromText = holidayFrom
-                            ? new Date(holidayFrom).toLocaleDateString("nb-NO")
-                            : "?";
-                        const toText = holidayTo
-                            ? new Date(holidayTo).toLocaleDateString("nb-NO")
-                            : "?";
+                        const fromText = holidayFrom ? new Date(holidayFrom).toLocaleDateString("nb-NO") : "?";
+                        const toText = holidayTo ? new Date(holidayTo).toLocaleDateString("nb-NO") : "?";
                         dateRangeText = ` (${fromText}–${toText})`;
                     }
-
                     updatedChild = {
                         ...updatedChild,
                         status: "notCheckedIn",
@@ -1494,20 +1145,13 @@ const ParentDashboard = ({
                 }
 
                 if (pickupNote && pickupNote.trim() && pickupDate) {
-                    const newPlan: PickupPlan = {
-                        id: Date.now(),
-                        date: pickupDate,
-                        note: pickupNote.trim(),
-                    };
+                    const newPlan: PickupPlan = { id: Date.now(), date: pickupDate, note: pickupNote.trim() };
                     const existingPlans = updatedChild.pickupPlans ?? [];
                     updatedChild.pickupPlans = [...existingPlans, newPlan];
 
                     if (option === "present" && pickupDate === todayISO) {
                         const baseNote = updatedChild.note ?? "";
-                        const extra =
-                            baseNote.length > 0
-                                ? ` – Henting: ${pickupNote.trim()}`
-                                : `Henting: ${pickupNote.trim()}`;
+                        const extra = baseNote.length > 0 ? ` – Henting: ${pickupNote.trim()}` : `Henting: ${pickupNote.trim()}`;
                         updatedChild.note = baseNote + extra;
                     }
                 }
@@ -1543,24 +1187,22 @@ const ParentDashboard = ({
         backToList();
     };
 
-    const openCalendarFromCheckIn = () => {
-        setActiveView("calendar");
-    };
+    const openCalendarFromCheckIn = () => setActiveView("calendar");
 
     const backFromCalendar = () => {
-        if (activeChild) {
-            setActiveView("checkIn");
-        } else {
-            setActiveView("list");
-        }
+        if (activeChild) setActiveView("checkIn");
+        else setActiveView("list");
     };
 
-    const openProfile = () => {
-        setActiveView("profile");
-    };
+    const openProfile = () => setActiveView("profile");
 
+    // Profil: update
     const handleUpdateParentProfile = (profile: ParentProfile) => {
-        updateUserProfileOnServer(parentId, profile)
+        updateUserProfile(parentId, {
+            fullName: profile.name,
+            email: profile.email,
+            phoneNumber: profile.phone || null,
+        })
             .then((updated) => {
                 setParentProfile({
                     name: updated.fullName ?? profile.name,
@@ -1581,22 +1223,15 @@ const ParentDashboard = ({
         Promise.all(
             updatedChildren.map((child) =>
                 updateChildDetailsOnServer(child).catch((e) => {
-                    console.error(
-                        `Feil ved lagring av barnedetaljer for barn ${child.id}`,
-                        e
-                    );
+                    console.error(`Feil ved lagring av barnedetaljer for barn ${child.id}`, e);
                 })
             )
-        ).then(() => {
-            // kan evt. vise "lagret"-melding
-        });
+        ).then(() => {});
     };
 
     const handlePasswordReset = (newPassword: string) => {
         changePassword(parentId, newPassword)
-            .then(() => {
-                alert("Passordet er oppdatert.");
-            })
+            .then(() => alert("Passordet er oppdatert."))
             .catch((e) => {
                 console.error("Feil ved endring av passord", e);
                 alert(e.message || "Klarte ikke å endre passord.");
@@ -1618,14 +1253,8 @@ const ParentDashboard = ({
                     </button>
                 </header>
 
-                <main
-                    className={`dashboard-main ${
-                        checkInSuccess ? "dashboard-main--blurred" : ""
-                    }`}
-                >
-                    {activeView === "calendar" && (
-                        <CalendarPage events={calendarEvents} onBack={backFromCalendar} />
-                    )}
+                <main className={`dashboard-main ${checkInSuccess ? "dashboard-main--blurred" : ""}`}>
+                    {activeView === "calendar" && <CalendarPage events={calendarEvents} onBack={backFromCalendar} />}
 
                     {activeView === "profile" && (
                         <ProfilePage
@@ -1638,9 +1267,7 @@ const ParentDashboard = ({
                         />
                     )}
 
-                    {activeChild && activeView === "info" && (
-                        <ChildInfoPage child={activeChild} onBack={backToList} />
-                    )}
+                    {activeChild && activeView === "info" && <ChildInfoPage child={activeChild} onBack={backToList} />}
 
                     {activeChild && activeView === "checkIn" && (
                         <CheckInPage
@@ -1655,11 +1282,7 @@ const ParentDashboard = ({
                     )}
 
                     {activeChild && activeActivity && activeView === "gallery" && (
-                        <ActivityGalleryPage
-                            child={activeChild}
-                            activity={activeActivity}
-                            onBack={backFromGalleryToCheckIn}
-                        />
+                        <ActivityGalleryPage child={activeChild} activity={activeActivity} onBack={backFromGalleryToCheckIn} />
                     )}
 
                     {!activeChild && activeView === "list" && (
@@ -1667,11 +1290,7 @@ const ParentDashboard = ({
                             <section className="dashboard-greeting">
                                 <div className="dashboard-greeting-row">
                                     <h1 className="dashboard-title">Hei {displayName}!</h1>
-                                    <button
-                                        type="button"
-                                        className="profile-link-button"
-                                        onClick={openProfile}
-                                    >
+                                    <button type="button" className="profile-link-button" onClick={openProfile}>
                                         Min profil
                                     </button>
                                 </div>
@@ -1684,63 +1303,36 @@ const ParentDashboard = ({
                                     <p className="dashboard-empty-text">
                                         Du har ingen registrerte barn ennå.
                                         <br />
-                                        Barn registreres av barnehagen. Ta kontakt med personalet
-                                        dersom et barn mangler i oversikten.
+                                        Barn registreres av barnehagen. Ta kontakt med personalet dersom et barn mangler i oversikten.
                                     </p>
                                 ) : (
                                     <div className="children-list">
                                         {children.map((child) => {
                                             const isCheckedIn = child.status === "checkedIn";
-                                            const firstLetter =
-                                                child.name.trim().charAt(0).toUpperCase();
+                                            const firstLetter = child.name.trim().charAt(0).toUpperCase();
 
                                             let upcomingPickupText: string | null = null;
                                             if (child.pickupPlans && child.pickupPlans.length > 0) {
-                                                const todayISO = new Date()
-                                                    .toISOString()
-                                                    .slice(0, 10);
-                                                const sorted = [...child.pickupPlans].sort((a, b) =>
-                                                    a.date.localeCompare(b.date)
-                                                );
-                                                const nextPlan =
-                                                    sorted.find((p) => p.date >= todayISO) ??
-                                                    sorted[sorted.length - 1];
-                                                const dateText = new Date(
-                                                    nextPlan.date
-                                                ).toLocaleDateString("nb-NO");
+                                                const todayISO2 = new Date().toISOString().slice(0, 10);
+                                                const sorted = [...child.pickupPlans].sort((a, b) => a.date.localeCompare(b.date));
+                                                const nextPlan = sorted.find((p) => p.date >= todayISO2) ?? sorted[sorted.length - 1];
+                                                const dateText = new Date(nextPlan.date).toLocaleDateString("nb-NO");
                                                 upcomingPickupText = `Henting ${dateText}: ${nextPlan.note}`;
                                             }
 
                                             return (
-                                                <article
-                                                    key={child.id}
-                                                    className={`child-card ${
-                                                        isCheckedIn
-                                                            ? "child-card--ok"
-                                                            : "child-card--alert"
-                                                    }`}
-                                                >
+                                                <article key={child.id} className={`child-card ${isCheckedIn ? "child-card--ok" : "child-card--alert"}`}>
                                                     <div className="child-card-header">
                                                         <div className="child-header-left">
                                                             {child.photoUrl ? (
-                                                                <img
-                                                                    src={child.photoUrl}
-                                                                    alt={`Bilde av ${child.name}`}
-                                                                    className="child-avatar"
-                                                                />
+                                                                <img src={child.photoUrl} alt={`Bilde av ${child.name}`} className="child-avatar" />
                                                             ) : (
-                                                                <div className="child-avatar child-avatar--placeholder">
-                                                                    {firstLetter}
-                                                                </div>
+                                                                <div className="child-avatar child-avatar--placeholder">{firstLetter}</div>
                                                             )}
                                                             <h3 className="child-name">{child.name}</h3>
                                                         </div>
 
-                                                        <button
-                                                            type="button"
-                                                            className="child-info-button"
-                                                            onClick={() => openChildInfo(child)}
-                                                        >
+                                                        <button type="button" className="child-info-button" onClick={() => openChildInfo(child)}>
                                                             Info
                                                         </button>
                                                     </div>
@@ -1748,31 +1340,14 @@ const ParentDashboard = ({
                                                     <div className="child-card-body">
                                                         <div>
                                                             <p className="child-status-text">
-                                                                {child.note ??
-                                                                    (isCheckedIn
-                                                                        ? `Krysset inn ${
-                                                                            child.lastCheckIn ?? ""
-                                                                        }`
-                                                                        : "Ikke krysset inn ennå")}
+                                                                {child.note ?? (isCheckedIn ? `Krysset inn ${child.lastCheckIn ?? ""}` : "Ikke krysset inn ennå")}
                                                             </p>
-                                                            {upcomingPickupText && (
-                                                                <p className="child-pickup-text">
-                                                                    {upcomingPickupText}
-                                                                </p>
-                                                            )}
+                                                            {upcomingPickupText && <p className="child-pickup-text">{upcomingPickupText}</p>}
                                                         </div>
 
                                                         <button
-                                                            className={`child-action-button ${
-                                                                isCheckedIn
-                                                                    ? "child-action-button--danger"
-                                                                    : "child-action-button--success"
-                                                            }`}
-                                                            onClick={() =>
-                                                                isCheckedIn
-                                                                    ? toggleCheckStatusDirect(child.id)
-                                                                    : openChildCheckIn(child)
-                                                            }
+                                                            className={`child-action-button ${isCheckedIn ? "child-action-button--danger" : "child-action-button--success"}`}
+                                                            onClick={() => (isCheckedIn ? toggleCheckStatusDirect(child.id) : openChildCheckIn(child))}
                                                         >
                                                             {isCheckedIn ? "Sjekk ut" : "Sjekk inn"}
                                                         </button>
@@ -1785,11 +1360,7 @@ const ParentDashboard = ({
                             </section>
 
                             <section className="dashboard-section">
-                                <button
-                                    type="button"
-                                    className="secondary-button full-width-secondary"
-                                    onClick={openCalendarFromList}
-                                >
+                                <button type="button" className="secondary-button full-width-secondary" onClick={openCalendarFromList}>
                                     📅 Se barnehagens kalender
                                 </button>
                             </section>
@@ -1801,23 +1372,13 @@ const ParentDashboard = ({
                     <div className="checkin-success-overlay">
                         <div className="checkin-success-card">
                             <div className="checkin-success-icon">✓</div>
-                            <p className="checkin-success-heading">
-                                {checkInSuccess.childName} er krysset inn
-                            </p>
+                            <p className="checkin-success-heading">{checkInSuccess.childName} er krysset inn</p>
                             <p className="checkin-success-text">
-                                Innkryssing er registrert kl{" "}
-                                <strong>{checkInSuccess.time}</strong>
-                                {checkInSuccess.department
-                                    ? `, hos ${checkInSuccess.department}`
-                                    : ""}
-                                .
+                                Innkryssing er registrert kl <strong>{checkInSuccess.time}</strong>
+                                {checkInSuccess.department ? `, hos ${checkInSuccess.department}` : ""}.
                             </p>
 
-                            <button
-                                type="button"
-                                className="login-button checkin-success-button"
-                                onClick={handleCloseSuccess}
-                            >
+                            <button type="button" className="login-button checkin-success-button" onClick={handleCloseSuccess}>
                                 Tilbake til &quot;Dine barn&quot;
                             </button>
                         </div>

@@ -27,7 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         throw new Error(message);
     }
 
-
+    // No content
     if (response.status === 204) {
         return undefined as T;
     }
@@ -35,13 +35,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     return response.json() as Promise<T>;
 }
 
+/* ---------- Felles typer ---------- */
+
+export type UserRole = "PARENT" | "STAFF" | "ADMIN";
+
 /* ---------- Auth ---------- */
 
 export interface LoginResponse {
     userId: number;
     fullName: string;
     email: string;
-    role: "PARENT" | "STAFF" | "ADMIN";
+    role: UserRole;
 }
 
 export function login(email: string, password: string): Promise<LoginResponse> {
@@ -66,28 +70,26 @@ export function changePassword(
 }
 
 export interface RegisterRequest {
-  fullName: string;
-  email: string;
-  phoneNumber?: string | null;
-  password: string;
+    fullName: string;
+    email: string;
+    phoneNumber?: string | null;
+    password: string;
 }
 
 export interface RegisterResponse {
-  userId: number;
-  fullName: string;
-  email: string;
-  role: "PARENT" | "STAFF" | "ADMIN";
-  message: string;
+    userId: number;
+    fullName: string;
+    email: string;
+    role: UserRole;
+    message: string;
 }
 
 export function registerParent(data: RegisterRequest): Promise<RegisterResponse> {
-  return request<RegisterResponse>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+    return request<RegisterResponse>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
 }
-
-
 
 /* ---------- Access codes ---------- */
 
@@ -98,18 +100,17 @@ export interface UseAccessCodeResponse {
 }
 
 export function useAccessCode(
-  code: string,
-  guardianUserId?: number | null
+    code: string,
+    guardianUserId?: number | null
 ): Promise<UseAccessCodeResponse> {
-  return request<UseAccessCodeResponse>("/access-codes/use", {
-    method: "POST",
-    body: JSON.stringify({
-      code,
-      guardianUserId: guardianUserId ?? null, // null = validate-only
-    }),
-  });
+    return request<UseAccessCodeResponse>("/access-codes/use", {
+        method: "POST",
+        body: JSON.stringify({
+            code,
+            guardianUserId: guardianUserId ?? null, // null = validate-only
+        }),
+    });
 }
-
 
 /* ---------- Barn / Children ---------- */
 
@@ -133,10 +134,12 @@ export function getChildrenForGuardian(
 
 /* ---------- Attendance status ---------- */
 
+export type AttendanceEventType = "IN" | "OUT";
+
 export interface ChildStatusResponse {
     childId: number;
     childName: string;
-    lastEventType: "IN" | "OUT" | null;
+    lastEventType: AttendanceEventType | null;
     lastEventTime: string | null;
     statusText: string;
 }
@@ -169,10 +172,39 @@ export function getGroupsForDaycare(
         `/daycare-groups/daycare/${daycareId}`
     );
 }
+export interface CreateChildRequest {
+    guardianUserId: number;
+    daycareGroupId: number;
+    createdByUserId: number;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string; // "YYYY-MM-DD"
+}
+
+export interface ChildResponse {
+    id: number;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    active: boolean;
+    daycareGroupId: number | null;
+    daycareGroupName: string | null;
+    daycareId: number | null;
+    daycareName: string | null;
+}
+
+export function createChild(data: CreateChildRequest): Promise<ChildResponse> {
+    return request<ChildResponse>("/children", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+export function getUserByEmail(email: string): Promise<UserProfileResponse> {
+    return request<UserProfileResponse>(`/users/by-email?email=${encodeURIComponent(email)}`);
+}
+
 
 /* ---------- Ansatt: registrere inn/ut ---------- */
-
-export type AttendanceEventType = "IN" | "OUT";
 
 export interface RegisterAttendanceRequest {
     childId: number;
@@ -181,8 +213,9 @@ export interface RegisterAttendanceRequest {
     note?: string;
 }
 
-
-export function registerAttendance(data: RegisterAttendanceRequest) {
+export function registerAttendance(
+    data: RegisterAttendanceRequest
+): Promise<void> {
     return request<void>("/attendance", {
         method: "POST",
         body: JSON.stringify(data),
@@ -197,7 +230,7 @@ export async function registerVacation(params: {
     startDate: string;
     endDate: string;
     note?: string;
-}) {
+}): Promise<void> {
     await request<void>("/vacation", {
         method: "POST",
         body: JSON.stringify({
@@ -207,5 +240,106 @@ export async function registerVacation(params: {
             endDate: params.endDate,
             note: params.note ?? "",
         }),
+    });
+}
+
+/* ---------- Kalender / Calendar events ---------- */
+
+export interface CalendarEventResponse {
+    id: number;
+    title: string;
+    description?: string | null;
+    location?: string | null;
+    startTime: string; // ISO
+    endTime?: string | null;
+    daycareId: number;
+    daycareGroupId?: number | null;
+    daycareGroupName?: string | null;
+}
+
+export interface CreateCalendarEventRequest {
+    daycareId: number;
+    daycareGroupId?: number | null; // null = hele barnehagen
+    title: string;
+    description?: string | null;
+    location?: string | null;
+    startTime: string; // ISO
+    endTime?: string | null;
+    createdByUserId: number;
+}
+
+export interface UpdateCalendarEventRequest {
+    title: string;
+    description?: string | null;
+    location?: string | null;
+    startTime: string; // ISO
+    endTime?: string | null;
+    updatedByUserId: number;
+}
+
+export function getCalendarEventsForDaycare(
+    daycareId: number
+): Promise<CalendarEventResponse[]> {
+    return request<CalendarEventResponse[]>(
+        `/calendar-events/daycare/${daycareId}`
+    );
+}
+
+export function createCalendarEvent(
+    data: CreateCalendarEventRequest
+): Promise<CalendarEventResponse> {
+    return request<CalendarEventResponse>("/calendar-events", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateCalendarEvent(
+    eventId: number,
+    data: UpdateCalendarEventRequest
+): Promise<CalendarEventResponse> {
+    return request<CalendarEventResponse>(`/calendar-events/${eventId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteCalendarEvent(
+    eventId: number,
+    deletedByUserId: number
+): Promise<void> {
+    return request<void>(
+        `/calendar-events/${eventId}?deletedByUserId=${deletedByUserId}`,
+        { method: "DELETE" }
+    );
+}
+
+/* ---------- Min profil / User profile ---------- */
+
+export interface UserProfileResponse {
+    id: number;
+    fullName: string;
+    email: string | null;
+    phoneNumber: string | null;
+    role: UserRole;
+}
+
+export interface UpdateUserProfileRequest {
+    fullName: string;
+    email: string | null;
+    phoneNumber: string | null;
+}
+
+export function getUserProfile(userId: number): Promise<UserProfileResponse> {
+    return request<UserProfileResponse>(`/users/${userId}`);
+}
+
+export function updateUserProfile(
+    userId: number,
+    data: UpdateUserProfileRequest
+): Promise<UserProfileResponse> {
+    return request<UserProfileResponse>(`/users/${userId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
     });
 }

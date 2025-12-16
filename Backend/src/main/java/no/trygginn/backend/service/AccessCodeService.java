@@ -47,13 +47,10 @@ public class AccessCodeService {
 
         Daycare daycare = accessCode.getDaycare();
 
-        // ✅ Ikke innlogget: bare valider koden og returner barnehagen.
-        // IKKE øk used_count, IKKE koble bruker.
         if (guardianUserId == null) {
             return daycare;
         }
 
-        // ✅ Innlogget: koble forelder + konsumér en bruk
         User guardian = userRepository.findById(guardianUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke bruker."));
 

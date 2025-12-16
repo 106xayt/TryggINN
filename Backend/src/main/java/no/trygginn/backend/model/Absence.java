@@ -30,8 +30,6 @@ public class Absence {
     @Column(name = "created_at", nullable = false)
     private LocalDate createdAt = LocalDate.now();
 
-    // Getters & Setters
-
     public Long getId() {
         return id;
     }

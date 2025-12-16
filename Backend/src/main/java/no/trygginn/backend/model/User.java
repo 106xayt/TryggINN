@@ -38,7 +38,6 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Forelder -> barn
     @ManyToMany
     @JoinTable(
             name = "guardians_children",
@@ -47,7 +46,6 @@ public class User {
     )
     private Set<Child> children = new HashSet<>();
 
-    // Forelder -> barnehage
     @ManyToMany
     @JoinTable(
             name = "guardians_daycare",

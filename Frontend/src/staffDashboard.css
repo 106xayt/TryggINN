@@ -233,6 +233,94 @@
   font-size: 12px;
   color: #4b5563;
 }
+.staff-top-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.staff-bottom-actions {
+    display: grid;
+    gap: 8px;
+}
+
+.dashboard-greeting-row--spaced {
+    margin-bottom: 8px;
+}
+
+.children-list--spaced {
+    margin-top: 12px;
+}
+
+.register-child-card {
+    background: #f9fafb;
+}
+
+.register-child-heading {
+    color: #111827;
+}
+
+.register-child-error {
+    color: #b91c1c;
+    margin: 6px 0 10px;
+}
+
+.register-child-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.modal-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.modal-primary {
+    width: 100%;
+}
+
+.row-gap {
+    display: flex;
+    gap: 8px;
+}
+
+.profile-section--spaced {
+    margin-top: 10px;
+}
+/* ===== Modal / overlay (brukes av både kalender + registrer barn) ===== */
+
+.checkin-success-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+}
+
+.checkin-success-card {
+    position: relative;     /* viktig: ikke absolute */
+    top: auto !important;   /* overstyr evt gammel CSS */
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+
+    width: min(420px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+
+    border-radius: 18px;
+}
+
+/* hvis du vil: litt bedre plass i modalen */
+.register-child-card {
+    padding: 16px;
+}
+
 
 /* Liten fade-in når ansatt-dashboard vises */
 

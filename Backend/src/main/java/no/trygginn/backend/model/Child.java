@@ -49,9 +49,6 @@ public class Child {
     @Column(name = "note")
     private String note;
 
-
-    // --- GETTERS & SETTERS ---
-
     public Long getId() {
         return id;
     }
@@ -103,8 +100,6 @@ public class Child {
     public LocalDate getCreatedAt() {
         return createdAt;
     }
-
-
 
     public String getAllergies() {
         return allergies;

@@ -20,6 +20,9 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: trygginn
       SPRING_SQL_INIT_MODE: always
+      SPRING_SQL_INIT_SCHEMA_LOCATIONS: classpath:schema.sql
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+
     ports:
       - "8080:8080"
     depends_on:
