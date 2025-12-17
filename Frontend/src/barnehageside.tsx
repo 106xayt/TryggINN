@@ -1,6 +1,10 @@
+// Importerer styling for forsiden/rammen
 import "./forside.css";
+
+// Henter språk/tema fra context
 import { useThemeLanguage } from "./ThemeLanguageContext";
 
+// Props som BarnehageSide forventer fra App (navigasjon + navn)
 interface BarnehageSideProps {
   barnehageNavn: string;
   onTilbakeTilKode: () => void;
@@ -9,6 +13,7 @@ interface BarnehageSideProps {
   onGoToReset: () => void;
 }
 
+// Velkomstside for valgt barnehage
 const BarnehageSide = ({
   barnehageNavn,
   onTilbakeTilKode,
@@ -16,9 +21,11 @@ const BarnehageSide = ({
   onGoToRegister,
   onGoToReset,
 }: BarnehageSideProps) => {
+  // Leser valgt språk fra context
   const { language } = useThemeLanguage();
   const isNb = language === "nb";
 
+  // Tekster som byttes basert på språk
   const welcomeLine = isNb ? "Velkommen til" : "Welcome to";
   const loginText = isNb ? "Logg inn ↪" : "Log in ↪";
   const registerText = isNb ? "Registrer deg" : "Register";
@@ -30,12 +37,14 @@ const BarnehageSide = ({
       <div className="phone-frame">
         <header className="forside-header">
           <div className="logo-box">
+            {/* Enkel logo/ikon */}
             <span className="logo-letter">T</span>
           </div>
         </header>
 
         <main className="forside-main">
           <section className="welcome-section">
+            {/* Viser velkomst + valgt barnehagenavn */}
             <h1 className="welcome-title">
               {welcomeLine}
               <br />
@@ -43,6 +52,7 @@ const BarnehageSide = ({
             </h1>
           </section>
 
+          {/* Navigasjonsknapper */}
           <div className="button-group">
             <button className="login-button" onClick={onGoToLogin}>
               {loginText}
@@ -57,6 +67,7 @@ const BarnehageSide = ({
             </button>
           </div>
 
+          {/* Tilbake-knapp nederst */}
           <div className="back-link-row">
             <button className="text-link-button" onClick={onTilbakeTilKode}>
               {backText}
@@ -69,5 +80,3 @@ const BarnehageSide = ({
 };
 
 export default BarnehageSide;
-
-

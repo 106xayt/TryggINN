@@ -3,6 +3,9 @@ package no.trygginn.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * Entity som representerer fravær for et barn.
+ */
 @Entity
 @Table(name = "absence")
 public class Absence {
@@ -11,22 +14,28 @@ public class Absence {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Barnet fraværet gjelder
     @ManyToOne(optional = false)
     @JoinColumn(name = "child_id")
     private Child child;
 
+    // Brukeren som rapporterte fraværet
     @ManyToOne(optional = false)
     @JoinColumn(name = "reported_by_user_id")
     private User reportedBy;
 
+    // Dato for fraværet
     @Column(nullable = false)
     private LocalDate date;
 
+    // Årsak til fraværet
     @Column(nullable = false)
     private String reason;
 
+    // Eventuell tilleggsinformasjon
     private String note;
 
+    // Tidspunkt for opprettelse
     @Column(name = "created_at", nullable = false)
     private LocalDate createdAt = LocalDate.now();
 

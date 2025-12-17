@@ -9,24 +9,34 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service for håndtering av barnehagegrupper.
+ */
 @Service
 public class DaycareGroupService {
 
     private final DaycareGroupRepository daycareGroupRepository;
     private final DaycareRepository daycareRepository;
 
-    public DaycareGroupService(DaycareGroupRepository daycareGroupRepository,
-                               DaycareRepository daycareRepository) {
+    public DaycareGroupService(
+            DaycareGroupRepository daycareGroupRepository,
+            DaycareRepository daycareRepository
+    ) {
         this.daycareGroupRepository = daycareGroupRepository;
         this.daycareRepository = daycareRepository;
     }
 
+    /**
+     * Henter alle grupper for en barnehage.
+     */
     @Transactional(readOnly = true)
     public List<DaycareGroup> getGroupsForDaycare(Long daycareId) {
+
         Daycare daycare = daycareRepository.findById(daycareId)
-                .orElseThrow(() -> new IllegalArgumentException("Finner ikke barnehage med id " + daycareId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Finner ikke barnehage med id " + daycareId));
 
-
-        return daycareGroupRepository.findByDaycare_Id(daycare.getId());
+        return daycareGroupRepository
+                .findByDaycare_Id(daycare.getId());
     }
 }

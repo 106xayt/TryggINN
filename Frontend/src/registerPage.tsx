@@ -1,44 +1,51 @@
-import { type FormEvent, useState } from "react";
-import "./forside.css";
-import { useThemeLanguage } from "./ThemeLanguageContext";
-import { registerParent } from "./api";
+import { type FormEvent, useState } from "react"; // React hooks + type for submit-event
+import "./forside.css"; // styling for screens/buttons/cards
+import { useThemeLanguage } from "./ThemeLanguageContext"; // henter valgt språk (nb/en)
+import { registerParent } from "./api"; // API-kall som registrerer foresatt i backend
 
-
+// Props: barnehagenavn til visning + callback for å gå tilbake i flowen
 interface RegisterPageProps {
   barnehageNavn: string;
   onBack: () => void;
 }
 
 const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
+  // Lokal state for feltene i skjemaet
   const [navn, setNavn] = useState("");
   const [email, setEmail] = useState("");
   const [telefon, setTelefon] = useState("");
   const [passord, setPassord] = useState("");
 
+  // Språkvalg fra context (nb eller engelsk)
   const { language } = useThemeLanguage();
   const isNb = language === "nb";
 
+  // Kjøres når brukeren sender inn registreringsskjemaet
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // hindrer at siden refresher
 
     try {
+      // Sender data til backend, med litt “rensing” (trim, lowercase)
       const res = await registerParent({
         fullName: navn.trim(),
         email: email.trim().toLowerCase(),
-        phoneNumber: telefon.trim() || null,
-        password: passord,
+        phoneNumber: telefon.trim() || null, // tom streng -> null
+        password: passord, // passord sendes som skrevet
       });
 
-      console.log("REGISTER OK:", res);
+      console.log("REGISTER OK:", res); // debug: se respons i console
 
+      // Gir brukeren beskjed, og sender dem tilbake til start/login-flow
       alert(isNb ? "Bruker registrert! Du kan nå logge inn." : "User registered! You can now log in.");
       onBack(); // tilbake til velkomst / login-flow hos deg
     } catch (err: any) {
+      // Ved feil: logg i console + vis en enkel feilmelding til brukeren
       console.error("REGISTER ERROR:", err);
       alert(err?.message || (isNb ? "Klarte ikke å registrere." : "Could not register."));
     }
   };
 
+  // Tekster som endrer seg basert på språk
   const titleTop = isNb ? "Registrer deg" : "Sign up";
   const createAccountTitle = isNb ? "Opprett konto" : "Create account";
 
@@ -62,6 +69,7 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
   return (
     <div className="forside-root">
       <div className="phone-frame">
+        {/* Logo/header */}
         <header className="forside-header small-header">
           <div className="logo-box">
             <span className="logo-letter">T</span>
@@ -69,6 +77,7 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
         </header>
 
         <main className="forside-main">
+          {/* Topptekst: “Registrer deg” + barnehagenavn */}
           <section className="welcome-section small-welcome">
             <h1 className="welcome-title">
               {titleTop}
@@ -77,10 +86,12 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
             </h1>
           </section>
 
+          {/* Kortet som inneholder registreringsskjemaet */}
           <section className="form-card">
             <h2 className="form-title">{createAccountTitle}</h2>
 
             <form onSubmit={handleSubmit} className="form">
+              {/* Navn */}
               <div className="form-field">
                 <label className="form-label">{nameLabel}</label>
                 <input
@@ -93,6 +104,7 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
                 />
               </div>
 
+              {/* E-post */}
               <div className="form-field">
                 <label className="form-label">{emailLabel}</label>
                 <input
@@ -105,6 +117,7 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
                 />
               </div>
 
+              {/* Telefon (valgfritt) */}
               <div className="form-field">
                 <label className="form-label">{phoneLabel}</label>
                 <input
@@ -116,6 +129,7 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
                 />
               </div>
 
+              {/* Passord */}
               <div className="form-field">
                 <label className="form-label">{passwordLabel}</label>
                 <input
@@ -128,11 +142,13 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
                 />
               </div>
 
+              {/* Submit-knapp */}
               <button type="submit" className="login-button form-submit">
                 {submitText}
               </button>
             </form>
 
+            {/* Tilbake-knapp */}
             <button type="button" className="helper-link" onClick={onBack}>
               {backText}
             </button>
@@ -143,4 +159,4 @@ const RegisterPage = ({ barnehageNavn, onBack }: RegisterPageProps) => {
   );
 };
 
-export default RegisterPage;
+export default RegisterPage; // gjør komponenten tilgjengelig for import i andre filer

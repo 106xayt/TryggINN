@@ -8,10 +8,21 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+/**
+ * Repository for kalenderhendelser.
+ */
 public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Long> {
 
+    /**
+     * Henter alle kalenderhendelser for en barnehage,
+     * sortert etter starttid.
+     */
     List<CalendarEvent> findByDaycare_IdOrderByStartTimeAsc(Long daycareId);
 
+    /**
+     * Henter relevante kalenderhendelser for en foresatt,
+     * basert på barnehage og barnets grupper.
+     */
     @Query("""
         SELECT e
         FROM CalendarEvent e

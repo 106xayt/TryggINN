@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service for håndtering av barn.
+ */
 @Service
 public class ChildService {
 
@@ -21,25 +24,29 @@ public class ChildService {
     private final UserRepository userRepository;
     private final DaycareGroupRepository daycareGroupRepository;
 
-    public ChildService(ChildRepository childRepository,
-                        UserRepository userRepository,
-                        DaycareGroupRepository daycareGroupRepository) {
+    public ChildService(
+            ChildRepository childRepository,
+            UserRepository userRepository,
+            DaycareGroupRepository daycareGroupRepository
+    ) {
         this.childRepository = childRepository;
         this.userRepository = userRepository;
         this.daycareGroupRepository = daycareGroupRepository;
     }
 
-
+    /**
+     * Oppretter et nytt barn og knytter det til foresatt og barnehagegruppe.
+     */
     @Transactional
     public Child createChild(CreateChildRequest request) {
 
         User creator = userRepository.findById(request.createdByUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke opprettet-av bruker."));
 
+        // Foreldre kan ikke registrere barn
         if (creator.getRole() == UserRole.PARENT) {
             throw new IllegalStateException("Foreldre kan ikke registrere barn.");
         }
-
 
         User guardian = userRepository.findById(request.guardianUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke forelder."));
@@ -48,20 +55,18 @@ public class ChildService {
             throw new IllegalStateException("Barn må knyttes til en forelder (rolle PARENT).");
         }
 
-
         DaycareGroup group = daycareGroupRepository.findById(request.daycareGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke barnehagegruppe."));
 
         Daycare daycare = group.getDaycare();
 
-
+        // Sjekker at foresatt er koblet til barnehagen
         boolean guardianLinkedToDaycare =
                 userRepository.isGuardianLinkedToDaycare(guardian.getId(), daycare.getId());
 
         if (!guardianLinkedToDaycare) {
             throw new IllegalStateException("Forelder er ikke koblet til denne barnehagen.");
         }
-
 
         Child child = new Child();
         child.setFirstName(request.firstName());
@@ -70,10 +75,9 @@ public class ChildService {
         child.setDaycareGroup(group);
         child.setActive(true);
 
-
+        // Kobler barn og foresatt
         child.getGuardians().add(guardian);
         guardian.getChildren().add(child);
-
 
         Child saved = childRepository.save(child);
         userRepository.save(guardian);
@@ -81,25 +85,34 @@ public class ChildService {
         return saved;
     }
 
-
+    /**
+     * Henter alle barn for en foresatt.
+     */
     @Transactional(readOnly = true)
     public List<Child> getChildrenForGuardian(Long guardianUserId) {
         return childRepository.findByGuardians_Id(guardianUserId);
     }
 
-
+    /**
+     * Henter barn basert på ID.
+     */
     @Transactional(readOnly = true)
     public Child getChildById(Long childId) {
         return childRepository.findById(childId)
-                .orElseThrow(() -> new IllegalArgumentException("Finner ikke barn med id " + childId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Finner ikke barn med id " + childId));
     }
 
-
+    /**
+     * Oppdaterer helse- og tilleggsinformasjon for barn.
+     */
     @Transactional
-    public Child updateChildDetails(Long childId,
-                                    String allergies,
-                                    String medications,
-                                    String favoriteFood) {
+    public Child updateChildDetails(
+            Long childId,
+            String allergies,
+            String medications,
+            String favoriteFood
+    ) {
         Child child = getChildById(childId);
 
         child.setAllergies(allergies);
@@ -109,6 +122,9 @@ public class ChildService {
         return childRepository.save(child);
     }
 
+    /**
+     * Oppdaterer internt notat for et barn.
+     */
     @Transactional
     public Child updateChildNote(Long childId, String note) {
         Child child = getChildById(childId);

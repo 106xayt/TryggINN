@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Service for håndtering av fravær.
+ */
 @Service
 public class AbsenceService {
 
@@ -28,11 +31,16 @@ public class AbsenceService {
         this.userRepository = userRepository;
     }
 
-    public Absence registerAbsence(Long childId,
-                                   Long reportedByUserId,
-                                   LocalDate date,
-                                   String reason,
-                                   String note) {
+    /**
+     * Registrerer fravær for et barn.
+     */
+    public Absence registerAbsence(
+            Long childId,
+            Long reportedByUserId,
+            LocalDate date,
+            String reason,
+            String note
+    ) {
 
         Child child = childRepository.findById(childId)
                 .orElseThrow(() -> new IllegalArgumentException("Barn ble ikke funnet."));
@@ -50,6 +58,9 @@ public class AbsenceService {
         return absenceRepository.save(absence);
     }
 
+    /**
+     * Henter alt fravær for et barn.
+     */
     public List<Absence> getAbsencesForChild(Long childId) {
         return absenceRepository.findByChild_IdOrderByDateDesc(childId);
     }

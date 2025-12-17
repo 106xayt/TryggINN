@@ -3,6 +3,9 @@ package no.trygginn.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity som representerer en tilgangskode til en barnehage.
+ */
 @Entity
 @Table(name = "daycare_access_code")
 public class DaycareAccessCode {
@@ -11,29 +14,37 @@ public class DaycareAccessCode {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Selve tilgangskoden
     @Column(nullable = false, unique = true)
     private String code;
 
+    // Barnehagen koden gjelder
     @ManyToOne(optional = false)
     @JoinColumn(name = "daycare_id")
     private Daycare daycare;
 
+    // Brukeren som opprettet koden
     @ManyToOne(optional = false)
     @JoinColumn(name = "created_by_user_id")
     private User createdBy;
 
+    // Maks antall ganger koden kan brukes
     @Column(name = "max_uses", nullable = false)
     private int maxUses = 100;
 
+    // Antall ganger koden er brukt
     @Column(name = "used_count", nullable = false)
     private int usedCount = 0;
 
+    // Om koden er aktiv
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    // Tidspunkt for opprettelse
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Utløpstidspunkt (kan være null)
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 

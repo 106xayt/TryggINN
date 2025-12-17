@@ -12,9 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import no.trygginn.backend.model.Child;
 
-
 import java.util.Locale;
 
+/**
+ * REST-controller for inn- og utsjekk (oppmøte).
+ */
 @RestController
 @RequestMapping("/api/attendance")
 public class AttendanceController {
@@ -28,11 +30,14 @@ public class AttendanceController {
         this.childService = childService;
     }
 
-
+    /**
+     * Registrerer en inn- eller utsjekk for et barn.
+     */
     @PostMapping
     public ResponseEntity<AttendanceEventResponse> registerEvent(
             @RequestBody AttendanceEventRequest request
     ) {
+
         AttendanceEventType type = parseEventType(request.eventType());
 
         Attendance attendance = attendanceService.registerEvent(
@@ -45,11 +50,13 @@ public class AttendanceController {
         return ResponseEntity.ok(toResponse(attendance));
     }
 
-
+    /**
+     * Henter siste registrerte status for et barn.
+     */
     @GetMapping("/child/{childId}/latest")
     public ResponseEntity<ChildStatusResponse> getLatestStatus(@PathVariable Long childId) {
-        Child child = childService.getChildById(childId);
 
+        Child child = childService.getChildById(childId);
         var latestOpt = attendanceService.getLatestEventForChild(childId);
 
         if (latestOpt.isEmpty()) {
@@ -81,7 +88,9 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
-
+    /**
+     * Parser og validerer eventType fra request.
+     */
     private AttendanceEventType parseEventType(String raw) {
         if (raw == null) {
             throw new IllegalArgumentException("eventType må være 'IN' eller 'OUT'.");
@@ -89,10 +98,15 @@ public class AttendanceController {
         try {
             return AttendanceEventType.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Ugyldig eventType: " + raw + " (bruk 'IN' eller 'OUT')");
+            throw new IllegalArgumentException(
+                    "Ugyldig eventType: " + raw + " (bruk 'IN' eller 'OUT')"
+            );
         }
     }
 
+    /**
+     * Mapper Attendance-entity til respons-DTO.
+     */
     private AttendanceEventResponse toResponse(Attendance attendance) {
         Child child = attendance.getChild();
         User performer = attendance.getPerformedBy();

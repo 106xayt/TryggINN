@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST-controller for håndtering av ferie.
+ */
 @RestController
 @RequestMapping("/api/vacation")
 public class VacationController {
@@ -21,8 +24,14 @@ public class VacationController {
         this.vacationService = vacationService;
     }
 
+    /**
+     * Registrerer ferie for et barn.
+     */
     @PostMapping
-    public ResponseEntity<VacationResponse> registerVacation(@RequestBody VacationRequest request) {
+    public ResponseEntity<VacationResponse> registerVacation(
+            @RequestBody VacationRequest request
+    ) {
+
         Vacation vacation = vacationService.registerVacation(
                 request.childId(),
                 request.reportedByUserId(),
@@ -34,9 +43,17 @@ public class VacationController {
         return ResponseEntity.ok(toResponse(vacation));
     }
 
+    /**
+     * Henter alle ferier for et barn.
+     */
     @GetMapping("/child/{childId}")
-    public ResponseEntity<List<VacationResponse>> getVacationsForChild(@PathVariable Long childId) {
-        List<Vacation> vacations = vacationService.getVacationsForChild(childId);
+    public ResponseEntity<List<VacationResponse>> getVacationsForChild(
+            @PathVariable Long childId
+    ) {
+
+        List<Vacation> vacations =
+                vacationService.getVacationsForChild(childId);
+
         List<VacationResponse> responses = vacations.stream()
                 .map(this::toResponse)
                 .toList();
@@ -44,7 +61,11 @@ public class VacationController {
         return ResponseEntity.ok(responses);
     }
 
+    /**
+     * Mapper Vacation-entity til respons-DTO.
+     */
     private VacationResponse toResponse(Vacation vacation) {
+
         Child child = vacation.getChild();
         User reporter = vacation.getReportedBy();
 

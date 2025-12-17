@@ -7,6 +7,9 @@ import no.trygginn.backend.service.ChildService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST-controller for notater knyttet til barn.
+ */
 @RestController
 @RequestMapping("/api/children")
 public class ChildNoteController {
@@ -17,10 +20,15 @@ public class ChildNoteController {
         this.childService = childService;
     }
 
+    /**
+     * Henter notat for et barn.
+     */
     @GetMapping("/{childId}/note")
-    public ResponseEntity<ChildNoteResponse> getNote(@PathVariable Long childId) {
-        Child child = childService.getChildById(childId);
+    public ResponseEntity<ChildNoteResponse> getNote(
+            @PathVariable Long childId
+    ) {
 
+        Child child = childService.getChildById(childId);
         String childName = child.getFirstName() + " " + child.getLastName();
 
         return ResponseEntity.ok(
@@ -32,12 +40,20 @@ public class ChildNoteController {
         );
     }
 
+    /**
+     * Oppdaterer notat for et barn.
+     */
     @PutMapping("/{childId}/note")
     public ResponseEntity<ChildNoteResponse> updateNote(
             @PathVariable Long childId,
             @RequestBody UpdateChildNoteRequest request
     ) {
-        Child updated = childService.updateChildNote(childId, request.note());
+
+        Child updated = childService.updateChildNote(
+                childId,
+                request.note()
+        );
+
         String childName = updated.getFirstName() + " " + updated.getLastName();
 
         return ResponseEntity.ok(

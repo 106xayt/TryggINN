@@ -1,4 +1,3 @@
-
 SET TIME ZONE 'UTC';
 
 --  1) TABLES
@@ -208,7 +207,9 @@ VALUES
 INSERT INTO guardians_daycare (guardian_id, daycare_id, access_role)
 VALUES
     (1, 1, 'PARENT'),
-    (2, 1, 'PARENT')
+    (2, 1, 'PARENT'),
+    (3, 1, 'STAFF'),
+    (4, 1, 'ADMIN')
     ON CONFLICT DO NOTHING;
 
 --  4) FIX SEQUENCES

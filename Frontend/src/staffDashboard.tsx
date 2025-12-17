@@ -1,1481 +1,749 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./forside.css";
-import "./parentsDashboard.css";
+import "./staffDashboard.css";
+
 import {
-    changePassword,
-    getUserProfile,
-    updateUserProfile,
-    getCalendarEventsForDaycare,
-    type UserProfileResponse,
-    type CalendarEventResponse,
+  changePassword,
+  getUserProfile,
+  updateUserProfile,
+  getGroupsForDaycare,
+  getCalendarEventsForDaycare,
+  createCalendarEvent,
+  createChild,
+  getUserByEmail,
+  getLatestStatusForChild,
+  registerAttendance,
+  type UserProfileResponse,
+  type CalendarEventResponse,
+  type DaycareGroupWithChildren,
+  type AttendanceEventType,
 } from "./api";
 
-const API_BASE_URL = "http://localhost:8080"; // brukes fortsatt av de "gamle" fetchene under (barn/attendance/etc)
+type ActiveView = "list" | "calendar" | "profile";
 
-type ChildStatus = "notCheckedIn" | "checkedIn";
+type ChildStatus = "IN" | "OUT" | "NONE";
 
-export interface ChildActivity {
-    id: number;
-    label: string;
-    photos: string[];
-}
-
-export interface PickupPlan {
-    id: number;
-    date: string; // ISO-dato (yyyy-mm-dd)
-    note: string;
-}
-
-/** Kalender-event slik ParentDashboard forventer */
-export interface KindergartenEvent {
-    id: number;
-    date: string; // ISO-dato (yyyy-mm-dd) for liste-visning
-    title: string;
-    description?: string;
-    /** null = hele barnehagen, ellers avdelingsnavn */
-    scope: string | null;
-    /** (valgfritt) hvis du vil bruke senere */
-    startTimeIso?: string;
-    endTimeIso?: string | null;
-}
-
-export interface Child {
-    id: number;
-    name: string;
-    status: ChildStatus;
-    lastCheckIn?: string;
-
-    // Info-felt
-    allergies?: string;
-    department?: string; // = daycareGroupName
-    otherInfo?: string;
-
-    photoUrl?: string;
-
-    // Fravær / ferie-detaljer
-    absenceDate?: string;
-    absenceNote?: string;
-    holidayFrom?: string;
-    holidayTo?: string;
-
-    // Hente-planer
-    pickupPlans?: PickupPlan[];
-
-    // Aktiviteter / bildeflyt
-    activities?: ChildActivity[];
-
-    note?: string;
-}
-
-interface ParentProfile {
-    name: string;
-    email: string;
-    phone: string;
-}
-
-interface ParentDashboardProps {
-    parentId: number; // 👈 kommer fra App (Login)
-    parentName: string;
-    onLogout: () => void;
-}
-
-/* ---- Backend-respons (for "gamle" fetcher) ---- */
-
-interface BackendChild {
-    id: number;
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    active: boolean;
-    daycareGroupId: number;
-    daycareGroupName: string;
-    daycareId: number;
-    daycareName: string;
-}
-
-interface BackendAttendance {
-    id: number;
-    eventType: "IN" | "OUT";
-    eventTime: string; // ISO-dato-tid
-    note?: string;
-}
-
-// ChildDetailsController
-interface BackendChildDetails {
-    id: number;
-    firstName: string;
-    lastName: string;
-    allergies?: string;
-    medications?: string;
-    favoriteFood?: string;
-}
-
-/* ---- Helpers for kalender-filtering ---- */
-
-function normalize(s: string | null | undefined): string {
-    return (s ?? "").trim().toLowerCase();
-}
-
-function isWholeDaycareEvent(evt: KindergartenEvent): boolean {
-    return evt.scope == null || normalize(evt.scope) === "";
-}
-
-function filterEventsForDepartment(events: KindergartenEvent[], department?: string): KindergartenEvent[] {
-    const dep = normalize(department);
-
-    return events.filter((evt) => {
-        if (isWholeDaycareEvent(evt)) return true; // hele barnehagen
-        if (!dep) return false; // barnet har ingen avdeling => bare hele barnehagen
-        return normalize(evt.scope) === dep;
-    });
-}
-
-/* ---- Infoside for ett barn ---- */
-
-interface ChildInfoProps {
-    child: Child;
-    onBack: () => void;
-}
-
-const ChildInfoPage = ({ child, onBack }: ChildInfoProps) => {
-    const [openSection, setOpenSection] = useState<string | null>("allergies");
-
-    const toggleSection = (section: string) => {
-        setOpenSection((prev) => (prev === section ? null : section));
-    };
-
-    const allergiesText = child.allergies?.trim() || "Ingen registrerte allergier.";
-    const departmentText = child.department?.trim() || "Ingen avdeling registrert.";
-    const otherText = child.otherInfo?.trim() || "Ingen ekstra informasjon registrert.";
-
-    const firstLetter = child.name.trim().charAt(0).toUpperCase();
-
-    return (
-        <section className="child-info-page">
-            <div className="child-info-header">
-                {child.photoUrl ? (
-                    <img src={child.photoUrl} alt={`Bilde av ${child.name}`} className="child-info-avatar" />
-                ) : (
-                    <div className="child-info-avatar child-info-avatar--placeholder">{firstLetter}</div>
-                )}
-
-                <div>
-                    <h1 className="child-info-title">{child.name}</h1>
-                    {child.department && <p className="child-info-subtitle">Avdeling {child.department}</p>}
-                </div>
-            </div>
-
-            <div className="child-info-box">
-                <div className="child-info-row">
-                    <button type="button" className="info-pill" onClick={() => toggleSection("allergies")}>
-            <span className="info-pill-emoji" aria-hidden="true">
-              🥜
-            </span>
-                        <span className="info-pill-label">Allergier</span>
-                        <span
-                            className={`info-pill-arrow ${openSection === "allergies" ? "info-pill-arrow--open" : ""}`}
-                            aria-hidden="true"
-                        >
-              ▾
-            </span>
-                    </button>
-                    {openSection === "allergies" && <p className="info-pill-text">{allergiesText}</p>}
-                </div>
-
-                <div className="child-info-row">
-                    <button type="button" className="info-pill" onClick={() => toggleSection("department")}>
-            <span className="info-pill-emoji" aria-hidden="true">
-              🏠
-            </span>
-                        <span className="info-pill-label">Avdeling</span>
-                        <span
-                            className={`info-pill-arrow ${openSection === "department" ? "info-pill-arrow--open" : ""}`}
-                            aria-hidden="true"
-                        >
-              ▾
-            </span>
-                    </button>
-                    {openSection === "department" && <p className="info-pill-text">{departmentText}</p>}
-                </div>
-
-                <div className="child-info-row">
-                    <button type="button" className="info-pill" onClick={() => toggleSection("other")}>
-            <span className="info-pill-emoji" aria-hidden="true">
-              ⭐
-            </span>
-                        <span className="info-pill-label">Annet</span>
-                        <span
-                            className={`info-pill-arrow ${openSection === "other" ? "info-pill-arrow--open" : ""}`}
-                            aria-hidden="true"
-                        >
-              ▾
-            </span>
-                    </button>
-                    {openSection === "other" && <p className="info-pill-text">{otherText}</p>}
-                </div>
-            </div>
-
-            <button type="button" className="login-button child-info-back-button" onClick={onBack}>
-                Tilbake til &quot;Dine barn&quot;
-            </button>
-        </section>
-    );
+type StaffChildRow = {
+  id: number;
+  name: string;
+  groupName: string;
+  status: ChildStatus;
+  note: string;
 };
 
-/* ---- Check-in side for ett barn ---- */
-
-type CheckInOption = "present" | "absent" | "holiday";
-
-interface CheckInPageProps {
-    child: Child;
-    reminderText?: string | null;
-    calendarEvents?: KindergartenEvent[];
-    onBack: () => void;
-    onConfirm: (data: {
-        option: CheckInOption;
-        absenceDate?: string;
-        absenceNote?: string;
-        holidayFrom?: string;
-        holidayTo?: string;
-        pickupDate?: string;
-        pickupNote?: string;
-    }) => void;
-    onOpenActivity: (activity: ChildActivity) => void;
-    onOpenCalendar: () => void;
-}
-
-const CheckInPage = ({
-                         child,
-                         reminderText,
-                         calendarEvents,
-                         onBack,
-                         onConfirm,
-                         onOpenActivity,
-                         onOpenCalendar,
-                     }: CheckInPageProps) => {
-    const [selectedOption, setSelectedOption] = useState<CheckInOption>("present");
-
-    const todayISO = new Date().toISOString().slice(0, 10);
-
-    const [absenceDate, setAbsenceDate] = useState<string>(todayISO);
-    const [absenceNote, setAbsenceNote] = useState<string>("");
-
-    const [holidayFrom, setHolidayFrom] = useState<string>("");
-    const [holidayTo, setHolidayTo] = useState<string>("");
-
-    const [pickupDate, setPickupDate] = useState<string>(todayISO);
-    const [pickupNote, setPickupNote] = useState<string>("");
-
-    const handleConfirm = () => {
-        onConfirm({
-            option: selectedOption,
-            absenceDate,
-            absenceNote,
-            holidayFrom,
-            holidayTo,
-            pickupDate,
-            pickupNote,
-        });
-    };
-
-    const defaultActivities: ChildActivity[] = [
-        { id: 1, label: "🖼️ Bilde fra i går", photos: [] },
-        { id: 2, label: "🌲 Tur i skogen", photos: [] },
-        { id: 3, label: "🎉 Bursdagsfeiring", photos: [] },
-    ];
-
-    const activitiesToShow: ChildActivity[] =
-        child.activities && child.activities.length > 0 ? child.activities : defaultActivities;
-
-    // Vis kun kommende (basert på date yyyy-mm-dd)
-    const upcomingEvents: KindergartenEvent[] = (calendarEvents ?? [])
-        .slice()
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .filter((evt) => evt.date >= todayISO)
-        .slice(0, 3);
-
-    return (
-        <section className="checkin-page">
-            <h1 className="checkin-title">Kryss inn {child.name}</h1>
-            <p className="checkin-subtitle">Trykk på knappen for å krysse inn {child.name}.</p>
-
-            <div className="checkin-card">
-                <div className="checkin-card-header">
-                    <div>
-                        <h2 className="checkin-child-name">{child.name}</h2>
-                        <p className="checkin-child-subtitle">
-                            Trykk for å krysse inn → {child.department ? ` Avdeling ${child.department}` : ""}
-                        </p>
-                    </div>
-                    <span className="checkin-status-badge">Borte</span>
-                </div>
-
-                <div className="checkin-card-body">
-                    <button
-                        type="button"
-                        className="checkin-radio-row"
-                        onClick={() => setSelectedOption((prev) => (prev === "absent" ? "present" : "absent"))}
-                    >
-                        <span className={`radio-circle ${selectedOption === "absent" ? "radio-circle--selected" : ""}`} />
-                        <span className="checkin-radio-label">🚫 Registrer fravær</span>
-                    </button>
-
-                    {selectedOption === "absent" && (
-                        <div className="checkin-extra-fields">
-                            <div className="checkin-field">
-                                <label className="checkin-field-label">Dato</label>
-                                <input
-                                    type="date"
-                                    className="checkin-field-input"
-                                    value={absenceDate}
-                                    onChange={(e) => setAbsenceDate(e.target.value)}
-                                />
-                            </div>
-                            <div className="checkin-field">
-                                <label className="checkin-field-label">Notat (f.eks. sykdom)</label>
-                                <input
-                                    type="text"
-                                    className="checkin-field-input"
-                                    placeholder="Feber, forkjølet, time hos lege ..."
-                                    value={absenceNote}
-                                    onChange={(e) => setAbsenceNote(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <button
-                        type="button"
-                        className="checkin-radio-row"
-                        onClick={() => setSelectedOption((prev) => (prev === "holiday" ? "present" : "holiday"))}
-                    >
-                        <span className={`radio-circle ${selectedOption === "holiday" ? "radio-circle--selected" : ""}`} />
-                        <span className="checkin-radio-label">🏝️ Legg inn ferie</span>
-                    </button>
-
-                    {selectedOption === "holiday" && (
-                        <div className="checkin-extra-fields">
-                            <div className="checkin-field-row">
-                                <div className="checkin-field">
-                                    <label className="checkin-field-label">Fra</label>
-                                    <input
-                                        type="date"
-                                        className="checkin-field-input"
-                                        value={holidayFrom}
-                                        onChange={(e) => setHolidayFrom(e.target.value)}
-                                    />
-                                </div>
-                                <div className="checkin-field">
-                                    <label className="checkin-field-label">Til</label>
-                                    <input
-                                        type="date"
-                                        className="checkin-field-input"
-                                        value={holidayTo}
-                                        onChange={(e) => setHolidayTo(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {reminderText && (
-                        <div className="checkin-reminder">
-              <span className="checkin-reminder-emoji" aria-hidden="true">
-                📌
-              </span>
-                            <span className="checkin-reminder-text">{reminderText}</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="pickup-section">
-                <p className="pickup-title">Hvem henter i barnehagen?</p>
-                <div className="checkin-extra-fields">
-                    <div className="checkin-field">
-                        <label className="checkin-field-label">Dato for henting</label>
-                        <input
-                            type="date"
-                            className="checkin-field-input"
-                            value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="checkin-field">
-                        <label className="checkin-field-label">Melding om henting</label>
-                        <input
-                            type="text"
-                            className="checkin-field-input"
-                            placeholder="F.eks. Bestemor henter kl 15:30"
-                            value={pickupNote}
-                            onChange={(e) => setPickupNote(e.target.value)}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="checkin-activities">
-                <p className="checkin-activities-title">Se hva {child.name} har gjort</p>
-                <div className="checkin-activities-chips">
-                    {activitiesToShow.map((activity) => (
-                        <button key={activity.id} type="button" className="activity-chip" onClick={() => onOpenActivity(activity)}>
-                            {activity.label}
-                        </button>
-                    ))}
-
-                    <button type="button" className="activity-chip calendar-chip" onClick={onOpenCalendar}>
-                        📅 Barnehagens kalender
-                    </button>
-                </div>
-            </div>
-
-            {upcomingEvents.length > 0 && (
-                <div className="calendar-section">
-                    <p className="calendar-title">Kommende i barnehagen</p>
-                    <ul className="calendar-list">
-                        {upcomingEvents.map((evt) => (
-                            <li key={evt.id} className="calendar-item">
-                                <span className="calendar-date">{new Date(evt.date).toLocaleDateString("nb-NO")}</span>
-                                <span className="calendar-dot" />
-                                <span className="calendar-text">{evt.title}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            <button type="button" className="login-button checkin-primary-button" onClick={handleConfirm}>
-                Kryss inn {child.name} nå
-            </button>
-
-            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
-                Tilbake
-            </button>
-        </section>
-    );
+type StaffProfile = {
+  name: string;
+  email: string;
+  phone: string;
 };
 
-/* ========= Galleri-side for aktiviteter ========= */
-
-interface ActivityGalleryProps {
-    child: Child;
-    activity: ChildActivity;
-    onBack: () => void;
-}
-
-const ActivityGalleryPage = ({ child, activity, onBack }: ActivityGalleryProps) => {
-    return (
-        <section className="gallery-page">
-            <h1 className="gallery-title">{activity.label}</h1>
-            <p className="gallery-subtitle">Bilder lagt inn av ansatte for {child.name}.</p>
-
-            {activity.photos && activity.photos.length > 0 ? (
-                <div className="gallery-images">
-                    {activity.photos.map((url, idx) => (
-                        <img key={idx} src={url} alt={`${activity.label} – bilde ${idx + 1}`} className="gallery-image" />
-                    ))}
-                </div>
-            ) : (
-                <p className="gallery-empty">Ingen bilder er lagt inn enda. Dette fylles fra ansatt-siden.</p>
-            )}
-
-            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
-                Tilbake
-            </button>
-        </section>
-    );
+type KindergartenEvent = {
+  id: number;
+  date: string; // startTime
+  endDate?: string; // endTime
+  title: string;
+  description?: string;
+  location?: string | null;
+  scope?: string; // avdeling / hele barnehagen
 };
 
-/* ========= Kalender-side (fullvisning) ========= */
-
-interface CalendarPageProps {
-    events: KindergartenEvent[];
-    onBack: () => void;
+interface StaffDashboardProps {
+  staffId: number;
+  staffName: string;
+  daycareId: number;
+  onLogout: () => void;
 }
 
-const CalendarPage = ({ events, onBack }: CalendarPageProps) => {
-    const todayISO = new Date().toISOString().slice(0, 10);
+/* --------- Helpers --------- */
 
-    const sortedEvents = events.slice().sort((a, b) => a.date.localeCompare(b.date));
-    const upcoming = sortedEvents.filter((e) => e.date >= todayISO);
-    const past = sortedEvents.filter((e) => e.date < todayISO);
-
-    return (
-        <section className="calendar-page">
-            <h1 className="calendar-page-title">Barnehagens kalender</h1>
-            <p className="calendar-page-subtitle">Oversikt over planlagte aktiviteter og merkedager.</p>
-
-            {sortedEvents.length === 0 && (
-                <p className="calendar-empty">Kalenderen er ikke fylt inn enda. Dette kommer fra barnehagens system.</p>
-            )}
-
-            {upcoming.length > 0 && (
-                <div className="calendar-block">
-                    <h2 className="calendar-block-title">Kommende</h2>
-                    <ul className="calendar-list">
-                        {upcoming.map((evt) => (
-                            <li key={evt.id} className="calendar-item calendar-item--full">
-                                <span className="calendar-date">{new Date(evt.date).toLocaleDateString("nb-NO")}</span>
-                                <span className="calendar-dot" />
-                                <div className="calendar-item-text">
-                                    <span className="calendar-text">{evt.title}</span>
-                                    {evt.description && <span className="calendar-description">{evt.description}</span>}
-                                    {!isWholeDaycareEvent(evt) && evt.scope && (
-                                        <span className="calendar-description">Avdeling: {evt.scope}</span>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            {past.length > 0 && (
-                <div className="calendar-block">
-                    <h2 className="calendar-block-title">Tidligere</h2>
-                    <ul className="calendar-list">
-                        {past.map((evt) => (
-                            <li key={evt.id} className="calendar-item calendar-item--full">
-                                <span className="calendar-date">{new Date(evt.date).toLocaleDateString("nb-NO")}</span>
-                                <span className="calendar-dot" />
-                                <div className="calendar-item-text">
-                                    <span className="calendar-text">{evt.title}</span>
-                                    {evt.description && <span className="calendar-description">{evt.description}</span>}
-                                    {!isWholeDaycareEvent(evt) && evt.scope && (
-                                        <span className="calendar-description">Avdeling: {evt.scope}</span>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
-                Tilbake
-            </button>
-        </section>
-    );
-};
-
-/* ========= Profil-side for foresatt ========= */
-
-interface ProfilePageProps {
-    parentProfile: ParentProfile;
-    onUpdateParentProfile: (profile: ParentProfile) => void;
-    children: Child[];
-    onUpdateChildren: (children: Child[]) => void;
-    onBack: () => void;
-    onPasswordReset: (newPassword: string) => void;
+function mapCalendarEvents(events: CalendarEventResponse[]): KindergartenEvent[] {
+  return events.map((e) => ({
+    id: e.id,
+    date: e.startTime,
+    endDate: e.endTime ?? undefined,
+    title: e.title,
+    scope: e.daycareGroupName?.trim() ? e.daycareGroupName : "Hele barnehagen",
+    location: e.location?.trim() ? e.location : null,
+    description: e.description?.trim() ? e.description : undefined,
+  }));
 }
 
-const ProfilePage = ({
-                         parentProfile,
-                         onUpdateParentProfile,
-                         children,
-                         onUpdateChildren,
-                         onBack,
-                         onPasswordReset,
-                     }: ProfilePageProps) => {
-    const [localParent, setLocalParent] = useState<ParentProfile>(parentProfile);
-    const [localChildren, setLocalChildren] = useState<Child[]>(children);
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("nb-NO", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+}
 
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+}
 
-    const [openSections, setOpenSections] = useState<{
-        parent: boolean;
-        password: boolean;
-        children: boolean;
-    }>({
-        parent: true,
-        password: false,
-        children: false,
-    });
+function fmtRange(start: string, end?: string) {
+  const s = fmtTime(start);
+  if (!end) return s;
+  return `${s} – ${fmtTime(end)}`;
+}
 
-    useEffect(() => setLocalParent(parentProfile), [parentProfile]);
-    useEffect(() => setLocalChildren(children), [children]);
+function toIso(dtLocal: string) {
+  return dtLocal ? new Date(dtLocal).toISOString() : "";
+}
 
-    const toggleSection = (key: keyof typeof openSections) => {
-        setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
+/* --------- Modal (bruker eksisterende overlay/card-klasser) --------- */
 
-    const handleChildChange = (index: number, field: keyof Child, value: string) => {
-        setLocalChildren((prev) => {
-            const copy = [...prev];
-            const child = { ...copy[index] };
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="checkin-success-overlay" onClick={onClose}>
+      <div className="checkin-success-card" onClick={(e) => e.stopPropagation()}>
+        <div className="staff-department-header">
+          <div className="staff-department-name">{title}</div>
+          <button type="button" className="staff-link-button" onClick={onClose}>
+            Lukk
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-            if (field === "name") child.name = value;
-            else if (field === "allergies") child.allergies = value || undefined;
-            else if (field === "department") child.department = value || undefined;
-            else if (field === "otherInfo") child.otherInfo = value || undefined;
-            else if (field === "photoUrl") child.photoUrl = value || undefined;
+/* --------- Calendar Page (fullvisning) --------- */
 
-            copy[index] = child;
-            return copy;
-        });
-    };
+function CalendarPage({ events, onBack }: { events: KindergartenEvent[]; onBack: () => void }) {
+  const todayISO = new Date().toISOString().slice(0, 10);
 
-    const handleSaveProfile = () => {
-        onUpdateParentProfile(localParent);
-        onUpdateChildren(localChildren);
-    };
+  const sorted = events.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = sorted.filter((e) => e.date.slice(0, 10) >= todayISO);
+  const past = sorted.filter((e) => e.date.slice(0, 10) < todayISO);
 
-    const handlePasswordSubmit = () => {
-        if (!newPassword.trim() || !confirmPassword.trim()) {
-            alert("Fyll inn begge passordfeltene.");
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            alert("Passordene er ikke like.");
-            return;
-        }
-        onPasswordReset(newPassword);
+  const Row = ({ evt }: { evt: KindergartenEvent }) => (
+    <li className="calendar-item calendar-item--full">
+      <span className="calendar-date">{fmtDate(evt.date)}</span>
+      <span className="calendar-dot" />
+      <div className="calendar-item-text">
+        <span className="calendar-text">{evt.title}</span>
+
+        <span className="calendar-description">⏰ {fmtRange(evt.date, evt.endDate)}</span>
+        <span className="calendar-description">🧩 Avdeling: {evt.scope ?? "Hele barnehagen"}</span>
+
+        {evt.location && <span className="calendar-description">📍 Sted: {evt.location}</span>}
+        {evt.description && <span className="calendar-description">{evt.description}</span>}
+      </div>
+    </li>
+  );
+
+  return (
+    <section className="calendar-page">
+      <h1 className="calendar-page-title">Barnehagens kalender</h1>
+      <p className="calendar-page-subtitle">Oversikt over planlagte aktiviteter og merkedager.</p>
+
+      {sorted.length === 0 && <p className="calendar-empty">Kalenderen er ikke fylt inn enda.</p>}
+
+      {upcoming.length > 0 && (
+        <div className="calendar-block">
+          <h2 className="calendar-block-title">Kommende</h2>
+          <ul className="calendar-list">{upcoming.map((evt) => <Row key={evt.id} evt={evt} />)}</ul>
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div className="calendar-block">
+          <h2 className="calendar-block-title">Tidligere</h2>
+          <ul className="calendar-list">{past.map((evt) => <Row key={evt.id} evt={evt} />)}</ul>
+        </div>
+      )}
+
+      <button type="button" className="secondary-button checkin-back-button" onClick={onBack}>
+        Tilbake
+      </button>
+    </section>
+  );
+}
+
+/* --------- Profile Page (info + passord) --------- */
+
+function StaffProfilePage({
+  staffId,
+  staffProfile,
+  onUpdateStaffProfile,
+  onBack,
+}: {
+  staffId: number;
+  staffProfile: StaffProfile;
+  onUpdateStaffProfile: (profile: StaffProfile) => void;
+  onBack: () => void;
+}) {
+  const [localStaff, setLocalStaff] = useState<StaffProfile>(staffProfile);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [openSections, setOpenSections] = useState<{ staff: boolean; password: boolean }>({
+    staff: true,
+    password: false,
+  });
+
+  useEffect(() => setLocalStaff(staffProfile), [staffProfile]);
+
+  const toggle = (key: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSave = () => {
+    onUpdateStaffProfile(localStaff);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      alert("Fyll inn begge passordfeltene.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("Passordene er ikke like.");
+      return;
+    }
+
+    changePassword(staffId, newPassword)
+      .then(() => alert("Passordet er oppdatert."))
+      .catch((e) => {
+        console.error("Feil ved endring av passord", e);
+        alert(e.message || "Klarte ikke å endre passord.");
+      })
+      .finally(() => {
         setNewPassword("");
         setConfirmPassword("");
-    };
+      });
+  };
 
-    return (
-        <section className="profile-page">
-            <h1 className="profile-title">Min profil</h1>
+  return (
+    <section className="profile-page">
+      <h1 className="profile-title">Min profil</h1>
 
-            <div className="profile-section">
-                <button type="button" className="profile-section-header" onClick={() => toggleSection("parent")}>
-                    <span className="profile-section-title">Foresatt</span>
-                    <span className={`profile-section-arrow ${openSections.parent ? "profile-section-arrow--open" : ""}`}>▾</span>
-                </button>
+      <div className="profile-section">
+        <button type="button" className="profile-section-header" onClick={() => toggle("staff")}>
+          <span className="profile-section-title">Ansatt</span>
+          <span className={`profile-section-arrow ${openSections.staff ? "profile-section-arrow--open" : ""}`}>▾</span>
+        </button>
 
-                {openSections.parent && (
-                    <div className="profile-section-body">
-                        <div className="form-field">
-                            <label className="form-label">Navn</label>
-                            <input
-                                type="text"
-                                className="text-input"
-                                value={localParent.name}
-                                onChange={(e) => setLocalParent((p) => ({ ...p, name: e.target.value }))}
-                                placeholder="Ditt navn"
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label className="form-label">E-post</label>
-                            <input
-                                type="email"
-                                className="text-input"
-                                value={localParent.email}
-                                onChange={(e) => setLocalParent((p) => ({ ...p, email: e.target.value }))}
-                                placeholder="din.epost@eksempel.no"
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label className="form-label">Telefonnummer</label>
-                            <input
-                                type="tel"
-                                className="text-input"
-                                value={localParent.phone}
-                                onChange={(e) => setLocalParent((p) => ({ ...p, phone: e.target.value }))}
-                                placeholder="F.eks. 900 00 000"
-                            />
-                        </div>
-                    </div>
-                )}
+        {openSections.staff && (
+          <div className="profile-section-body">
+            <div className="form-field">
+              <label className="form-label">Navn</label>
+              <input
+                type="text"
+                className="text-input"
+                value={localStaff.name}
+                onChange={(e) => setLocalStaff((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Ditt navn"
+              />
             </div>
 
-            <div className="profile-section">
-                <button type="button" className="profile-section-header" onClick={() => toggleSection("password")}>
-                    <span className="profile-section-title">Passord</span>
-                    <span className={`profile-section-arrow ${openSections.password ? "profile-section-arrow--open" : ""}`}>▾</span>
-                </button>
-
-                {openSections.password && (
-                    <div className="profile-section-body">
-                        <p className="profile-section-hint">Her kan du be om å sette nytt passord.</p>
-
-                        <div className="form-field">
-                            <label className="form-label">Nytt passord</label>
-                            <input
-                                type="password"
-                                className="text-input"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label className="form-label">Gjenta nytt passord</label>
-                            <input
-                                type="password"
-                                className="text-input"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <button
-                            type="button"
-                            className="secondary-button full-width-secondary profile-password-button"
-                            onClick={handlePasswordSubmit}
-                        >
-                            Reset passord
-                        </button>
-                    </div>
-                )}
+            <div className="form-field">
+              <label className="form-label">E-post</label>
+              <input
+                type="email"
+                className="text-input"
+                value={localStaff.email}
+                onChange={(e) => setLocalStaff((p) => ({ ...p, email: e.target.value }))}
+                placeholder="din.epost@eksempel.no"
+              />
             </div>
 
-            <div className="profile-section">
-                <button type="button" className="profile-section-header" onClick={() => toggleSection("children")}>
-                    <span className="profile-section-title">Barn ({localChildren.length})</span>
-                    <span className={`profile-section-arrow ${openSections.children ? "profile-section-arrow--open" : ""}`}>▾</span>
-                </button>
+            <div className="form-field">
+              <label className="form-label">Telefonnummer</label>
+              <input
+                type="tel"
+                className="text-input"
+                value={localStaff.phone}
+                onChange={(e) => setLocalStaff((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="F.eks. 900 00 000"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-                {openSections.children && (
-                    <div className="profile-section-body">
-                        {localChildren.length === 0 ? (
-                            <p className="profile-section-hint">
-                                Du har ingen registrerte barn enda. Legg til barn fra hovedsiden.
-                            </p>
-                        ) : (
-                            <div className="profile-children-list">
-                                {localChildren.map((child, index) => (
-                                    <div key={child.id} className="profile-child-card">
-                                        <p className="profile-child-title">{child.name}</p>
+      <div className="profile-section">
+        <button type="button" className="profile-section-header" onClick={() => toggle("password")}>
+          <span className="profile-section-title">Passord</span>
+          <span className={`profile-section-arrow ${openSections.password ? "profile-section-arrow--open" : ""}`}>▾</span>
+        </button>
 
-                                        <div className="form-field">
-                                            <label className="form-label">Navn</label>
-                                            <input
-                                                type="text"
-                                                className="text-input"
-                                                value={child.name}
-                                                onChange={(e) => handleChildChange(index, "name", e.target.value)}
-                                            />
-                                        </div>
+        {openSections.password && (
+          <div className="profile-section-body">
+            <p className="profile-section-hint">Her kan du sette nytt passord.</p>
 
-                                        <div className="form-field">
-                                            <label className="form-label">Lenke til bilde</label>
-                                            <input
-                                                type="url"
-                                                className="text-input"
-                                                value={child.photoUrl ?? ""}
-                                                onChange={(e) => handleChildChange(index, "photoUrl", e.target.value)}
-                                                placeholder="https://…"
-                                            />
-                                        </div>
-
-                                        <div className="form-field">
-                                            <label className="form-label">Allergier</label>
-                                            <input
-                                                type="text"
-                                                className="text-input"
-                                                value={child.allergies ?? ""}
-                                                onChange={(e) => handleChildChange(index, "allergies", e.target.value)}
-                                                placeholder="F.eks. nøtter, melk, pollen"
-                                            />
-                                        </div>
-
-                                        <div className="form-field">
-                                            <label className="form-label">Avdeling</label>
-                                            <input
-                                                type="text"
-                                                className="text-input"
-                                                value={child.department ?? ""}
-                                                onChange={(e) => handleChildChange(index, "department", e.target.value)}
-                                                placeholder="F.eks. Marihøna, Bikuben"
-                                            />
-                                        </div>
-
-                                        <div className="form-field">
-                                            <label className="form-label">Annet</label>
-                                            <input
-                                                type="text"
-                                                className="text-input"
-                                                value={child.otherInfo ?? ""}
-                                                onChange={(e) => handleChildChange(index, "otherInfo", e.target.value)}
-                                                placeholder="Henting, språk, spesielle beskjeder..."
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+            <div className="form-field">
+              <label className="form-label">Nytt passord</label>
+              <input
+                type="password"
+                className="text-input"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
 
-            <button type="button" className="login-button profile-save-button" onClick={handleSaveProfile}>
-                Lagre endringer
+            <div className="form-field">
+              <label className="form-label">Gjenta nytt passord</label>
+              <input
+                type="password"
+                className="text-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="secondary-button full-width-secondary profile-password-button"
+              onClick={handlePasswordSubmit}
+            >
+              Endre passord
             </button>
+          </div>
+        )}
+      </div>
 
-            <button type="button" className="secondary-button profile-back-button" onClick={onBack}>
-                Tilbake til &quot;Dine barn&quot;
-            </button>
-        </section>
-    );
-};
+      <button type="button" className="login-button profile-save-button" onClick={handleSave}>
+        Lagre endringer
+      </button>
 
-/* ========= Selve dashboardet ========= */
-
-type ActiveView = "list" | "info" | "checkIn" | "gallery" | "calendar" | "profile";
-
-interface CheckInSuccessData {
-    childName: string;
-    department?: string;
-    time: string;
+      <button type="button" className="secondary-button profile-back-button" onClick={onBack}>
+        Tilbake
+      </button>
+    </section>
+  );
 }
 
-/* --- Backend-kall (beholdt som før) --- */
+/* --------- Main StaffDashboard --------- */
 
-async function fetchChildrenForGuardian(guardianId: number): Promise<BackendChild[]> {
-    const res = await fetch(`${API_BASE_URL}/api/children/guardian/${guardianId}`);
-    if (!res.ok) throw new Error(`Feil ved henting av barn: ${res.status}`);
-    return res.json();
-}
+export default function StaffDashboard({ staffId, staffName, daycareId, onLogout }: StaffDashboardProps) {
+  const [activeView, setActiveView] = useState<ActiveView>("list");
 
-async function postVacationRange(params: { childId: number; userId: number; from: string; to: string; note?: string }) {
-    const res: Response = await fetch(`${API_BASE_URL}/api/vacation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            childId: params.childId,
-            reportedByUserId: params.userId,
-            startDate: params.from,
-            endDate: params.to,
-            note: params.note ?? "",
-        }),
-    });
+  const [children, setChildren] = useState<StaffChildRow[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<KindergartenEvent[]>([]);
+  const [daycareGroups, setDaycareGroups] = useState<DaycareGroupWithChildren[]>([]); // ✅ for dropdown
 
-    if (!res.ok) throw new Error(`Feil ved registrering av ferie: ${res.status}`);
-}
+  const [staffProfile, setStaffProfile] = useState<StaffProfile>({
+    name: staffName,
+    email: "",
+    phone: "",
+  });
 
-async function fetchLatestAttendanceForChild(childId: number): Promise<BackendAttendance | null> {
-    const res = await fetch(`${API_BASE_URL}/api/attendance/child/${childId}/latest`);
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Feil ved henting av attendance: ${res.status}`);
-    return res.json();
-}
+  // modals
+  const [showRegisterChild, setShowRegisterChild] = useState(false);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
-async function postAttendanceEvent(params: { childId: number; userId: number; eventType: "IN" | "OUT"; note?: string }) {
-    const res = await fetch(`${API_BASE_URL}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            childId: params.childId,
-            performedByUserId: params.userId,
-            eventType: params.eventType,
-            note: params.note,
-        }),
-    });
+  // create child form
+  const [guardianEmail, setGuardianEmail] = useState("");
+  const [childFirst, setChildFirst] = useState("");
+  const [childLast, setChildLast] = useState("");
+  const [childDob, setChildDob] = useState(""); // YYYY-MM-DD
+  const [groupId, setGroupId] = useState<number | "">("");
 
-    if (!res.ok) throw new Error(`Feil ved registrering av attendance: ${res.status}`);
-}
+  // create event form
+  const [evtTitle, setEvtTitle] = useState("");
+  const [evtDesc, setEvtDesc] = useState("");
+  const [evtLoc, setEvtLoc] = useState("");
+  const [evtStart, setEvtStart] = useState("");
+  const [evtEnd, setEvtEnd] = useState("");
 
-async function postAbsence(params: { childId: number; userId: number; date: string; reason: string; note?: string }) {
-    const res = await fetch(`${API_BASE_URL}/api/absence`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            childId: params.childId,
-            reportedByUserId: params.userId,
-            date: params.date,
-            reason: params.reason,
-            note: params.note ?? params.reason,
-        }),
-    });
+  const displayName = staffProfile.name || staffName;
 
-    if (!res.ok) throw new Error(`Feil ved registrering av fravær: ${res.status}`);
-}
+  const avatarLetter = useMemo(() => {
+    const s = (displayName || "A").trim();
+    return (s.charAt(0) || "A").toUpperCase();
+  }, [displayName]);
 
-async function fetchChildDetails(childId: number): Promise<BackendChildDetails> {
-    const res = await fetch(`${API_BASE_URL}/api/children/${childId}/details`);
-    if (!res.ok) throw new Error(`Feil ved henting av barnedetaljer: ${res.status}`);
-    return res.json();
-}
+  const load = async () => {
+    // profile
+    try {
+      const profile: UserProfileResponse = await getUserProfile(staffId);
+      setStaffProfile({
+        name: profile.fullName ?? staffName,
+        email: profile.email ?? "",
+        phone: profile.phoneNumber ?? "",
+      });
+    } catch (e) {
+      console.error("Feil ved henting av staff-profil", e);
+    }
 
-async function updateChildDetailsOnServer(child: Child): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/api/children/${child.id}/details`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            allergies: child.allergies ?? "",
-            medications: "",
-            favoriteFood: child.otherInfo ?? "",
-        }),
-    });
+    // calendar
+    try {
+      const events = await getCalendarEventsForDaycare(daycareId);
+      setCalendarEvents(mapCalendarEvents(events));
+    } catch (e) {
+      console.error("Feil ved henting av kalender", e);
+      setCalendarEvents([]);
+    }
 
-    if (!res.ok) throw new Error(`Feil ved oppdatering av barnedetaljer: ${res.status}`);
-}
+    // groups + children + attendance
+    try {
+      const groups: DaycareGroupWithChildren[] = await getGroupsForDaycare(daycareId);
+      setDaycareGroups(groups); // ✅ dropdown source
 
-/* ======= ParentDashboard ======= */
+      const flat = (groups ?? []).flatMap((g) =>
+        (g.children ?? []).map((c) => ({
+          id: c.id,
+          name: `${c.firstName} ${c.lastName}`,
+          groupName: g.name,
+        }))
+      );
 
-const ParentDashboard = ({ parentId, parentName, onLogout }: ParentDashboardProps) => {
-    const [children, setChildren] = useState<Child[]>([]);
-
-    const [activeChild, setActiveChild] = useState<Child | null>(null);
-    const [activeView, setActiveView] = useState<ActiveView>("list");
-    const [activeActivity, setActiveActivity] = useState<ChildActivity | null>(null);
-
-    const [calendarEvents, setCalendarEvents] = useState<KindergartenEvent[]>([]);
-    const [todayReminder, setTodayReminder] = useState<string | null>(null);
-
-    // Når kalender åpnes fra barn => filtrer på barnets avdeling
-    const [calendarDepartmentFilter, setCalendarDepartmentFilter] = useState<string | null>(null);
-
-    const [checkInSuccess, setCheckInSuccess] = useState<CheckInSuccessData | null>(null);
-
-    const [parentProfile, setParentProfile] = useState<ParentProfile>({
-        name: parentName,
-        email: "",
-        phone: "",
-    });
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const backendChildren = await fetchChildrenForGuardian(parentId);
-
-                const mappedChildren: Child[] = backendChildren.map((bc) => ({
-                    id: bc.id,
-                    name: `${bc.firstName} ${bc.lastName}`,
-                    status: "notCheckedIn",
-                    note: "Ikke krysset inn ennå",
-                    department: bc.daycareGroupName,
-                }));
-
-                const withStatus: Child[] = await Promise.all(
-                    mappedChildren.map(async (child) => {
-                        try {
-                            const att = await fetchLatestAttendanceForChild(child.id);
-                            if (!att) return child;
-
-                            const timeStr = new Date(att.eventTime).toLocaleTimeString("nb-NO", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
-
-                            if (att.eventType === "IN") {
-                                return { ...child, status: "checkedIn", lastCheckIn: timeStr, note: `Krysset inn ${timeStr}` };
-                            }
-
-                            return { ...child, status: "notCheckedIn", lastCheckIn: undefined, note: `Sist registrert: ute ${timeStr}` };
-                        } catch (e) {
-                            console.error("Klarte ikke hente attendance for barn", e);
-                            return child;
-                        }
-                    })
-                );
-
-                const withDetails: Child[] = await Promise.all(
-                    withStatus.map(async (child) => {
-                        try {
-                            const details = await fetchChildDetails(child.id);
-                            return {
-                                ...child,
-                                allergies: details.allergies ?? undefined,
-                                otherInfo: details.favoriteFood ?? undefined,
-                            };
-                        } catch (e) {
-                            console.error("Klarte ikke hente barnedetaljer", e);
-                            return child;
-                        }
-                    })
-                );
-
-                setChildren(withDetails);
-
-                // ✅ Hent kalender-events (samme endpoint som staff)
-                // For nå: hardkodet daycareId = 1 (samme som StaffDashboard)
-                try {
-                    const daycareId = 1;
-                    const evts: CalendarEventResponse[] = await getCalendarEventsForDaycare(daycareId);
-
-                    const mapped: KindergartenEvent[] = evts
-                        .slice()
-                        .map((e) => {
-                            // Bruk startTime som kilde, men lag date=YYYY-MM-DD for parent UI
-                            const start = new Date(e.startTime);
-                            const yyyy = start.getFullYear();
-                            const mm = String(start.getMonth() + 1).padStart(2, "0");
-                            const dd = String(start.getDate()).padStart(2, "0");
-                            const date = `${yyyy}-${mm}-${dd}`;
-
-                            return {
-                                id: e.id,
-                                date,
-                                title: e.title,
-                                description: e.description ?? undefined,
-                                scope: e.daycareGroupName ?? null, // null = hele barnehagen
-                                startTimeIso: e.startTime,
-                                endTimeIso: e.endTime ?? null,
-                            };
-                        });
-
-                    setCalendarEvents(mapped);
-                } catch (e) {
-                    console.error("Feil ved henting av kalender-events", e);
-                    setCalendarEvents([]);
-                }
-
-                setTodayReminder(null);
-            } catch (e) {
-                console.error("Feil ved henting av barnsdata", e);
-            }
-
-            // ✅ Profil: bruk api.tsx
-            try {
-                const profile: UserProfileResponse = await getUserProfile(parentId);
-                setParentProfile({
-                    name: profile.fullName ?? parentName,
-                    email: profile.email ?? "",
-                    phone: profile.phoneNumber ?? "",
-                });
-            } catch (e) {
-                console.error("Feil ved henting av brukerprofil", e);
-            }
-        };
-
-        loadData();
-    }, [parentId, parentName]);
-
-    const toggleCheckStatusDirect = async (id: number) => {
-        const child = children.find((c) => c.id === id);
-        if (!child) return;
-
-        const isCheckedIn = child.status === "checkedIn";
-        const eventType: "IN" | "OUT" = isCheckedIn ? "OUT" : "IN";
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
-
-        try {
-            await postAttendanceEvent({
-                childId: id,
-                userId: parentId,
-                eventType,
-                note: isCheckedIn ? "Forelder sjekket ut via app" : "Forelder sjekket inn via app",
-            });
-
-            setChildren((prev) =>
-                prev.map((c) =>
-                    c.id === id
-                        ? {
-                            ...c,
-                            status: isCheckedIn ? "notCheckedIn" : "checkedIn",
-                            lastCheckIn: isCheckedIn ? undefined : timeStr,
-                            note: isCheckedIn ? "Ikke krysset inn ennå" : `Krysset inn ${timeStr}`,
-                            absenceDate: undefined,
-                            absenceNote: undefined,
-                            holidayFrom: undefined,
-                            holidayTo: undefined,
-                        }
-                        : c
-                )
-            );
-        } catch (e) {
-            console.error("Feil ved registrering av attendance", e);
-            alert("Klarte ikke å registrere inn/ut-kryssing.");
-        }
-    };
-
-    const openChildInfo = (child: Child) => {
-        setActiveChild(child);
-        setActiveView("info");
-    };
-
-    const openChildCheckIn = (child: Child) => {
-        setActiveChild(child);
-        setActiveView("checkIn");
-    };
-
-    const openCalendarFromList = () => {
-        setCalendarDepartmentFilter(null); // vis alt
-        setActiveChild(null);
-        setActiveView("calendar");
-    };
-
-    const backToList = () => {
-        setActiveChild(null);
-        setActiveActivity(null);
-        setCalendarDepartmentFilter(null);
-        setActiveView("list");
-    };
-
-    const handleConfirmCheckIn = async (data: {
-        option: CheckInOption;
-        absenceDate?: string;
-        absenceNote?: string;
-        holidayFrom?: string;
-        holidayTo?: string;
-        pickupDate?: string;
-        pickupNote?: string;
-    }) => {
-        if (!activeChild) return;
-
-        const { option, absenceDate, absenceNote, holidayFrom, holidayTo, pickupDate, pickupNote } = data;
-
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
-        const todayISO = new Date().toISOString().slice(0, 10);
-
-        if (option === "present") {
-            try {
-                await postAttendanceEvent({
-                    childId: activeChild.id,
-                    userId: parentId,
-                    eventType: "IN",
-                    note: "Forelder sjekket inn via app",
-                });
-            } catch (e) {
-                console.error("Feil ved innsjekk", e);
-                alert("Klarte ikke å registrere innsjekk.");
-                return;
-            }
-        } else if (option === "absent") {
-            try {
-                const dateToSend = absenceDate || todayISO;
-                const noteText = absenceNote?.trim() || "Fravær registrert via app";
-                await postAbsence({
-                    childId: activeChild.id,
-                    userId: parentId,
-                    date: dateToSend,
-                    reason: noteText,
-                    note: noteText,
-                });
-            } catch (e) {
-                console.error("Feil ved registrering av fravær", e);
-                alert("Klarte ikke å registrere fravær.");
-                return;
-            }
-        } else if (option === "holiday") {
-            try {
-                if (!holidayFrom || !holidayTo) {
-                    alert("Velg både fra- og tildato for ferie.");
-                    return;
-                }
-                await postVacationRange({
-                    childId: activeChild.id,
-                    userId: parentId,
-                    from: holidayFrom,
-                    to: holidayTo,
-                    note: "Ferie registrert via app",
-                });
-            } catch (e) {
-                console.error("Feil ved registrering av ferie", e);
-                alert("Klarte ikke å registrere ferie.");
-                return;
-            }
-        }
-
-        setChildren((prev) =>
-            prev.map((child) => {
-                if (child.id !== activeChild.id) return child;
-
-                let updatedChild: Child = { ...child };
-
-                if (option === "present") {
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "checkedIn",
-                        lastCheckIn: timeStr,
-                        note: `Krysset inn ${timeStr}`,
-                        absenceDate: undefined,
-                        absenceNote: undefined,
-                        holidayFrom: undefined,
-                        holidayTo: undefined,
-                    };
-                } else if (option === "absent") {
-                    const formattedDate = absenceDate ? new Date(absenceDate).toLocaleDateString("nb-NO") : "i dag";
-                    const noteText = absenceNote?.trim() ? ` – ${absenceNote.trim()}` : "";
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "notCheckedIn",
-                        lastCheckIn: undefined,
-                        absenceDate,
-                        absenceNote,
-                        holidayFrom: undefined,
-                        holidayTo: undefined,
-                        note: `Registrert fravær ${formattedDate}${noteText}`,
-                    };
-                } else {
-                    let dateRangeText = "";
-                    if (holidayFrom || holidayTo) {
-                        const fromText = holidayFrom ? new Date(holidayFrom).toLocaleDateString("nb-NO") : "?";
-                        const toText = holidayTo ? new Date(holidayTo).toLocaleDateString("nb-NO") : "?";
-                        dateRangeText = ` (${fromText}–${toText})`;
-                    }
-                    updatedChild = {
-                        ...updatedChild,
-                        status: "notCheckedIn",
-                        lastCheckIn: undefined,
-                        absenceDate: undefined,
-                        absenceNote: undefined,
-                        holidayFrom,
-                        holidayTo,
-                        note: `Registrert ferie${dateRangeText}`,
-                    };
-                }
-
-                if (pickupNote && pickupNote.trim() && pickupDate) {
-                    const newPlan: PickupPlan = { id: Date.now(), date: pickupDate, note: pickupNote.trim() };
-                    const existingPlans = updatedChild.pickupPlans ?? [];
-                    updatedChild.pickupPlans = [...existingPlans, newPlan];
-
-                    if (option === "present" && pickupDate === todayISO) {
-                        const baseNote = updatedChild.note ?? "";
-                        const extra = baseNote.length > 0 ? ` – Henting: ${pickupNote.trim()}` : `Henting: ${pickupNote.trim()}`;
-                        updatedChild.note = baseNote + extra;
-                    }
-                }
-
-                return updatedChild;
-            })
-        );
-
-        if (option === "present") {
-            setCheckInSuccess({
-                childName: activeChild.name,
-                department: activeChild.department,
-                time: timeStr,
-            });
-        } else {
-            backToList();
-        }
-    };
-
-    const handleOpenActivity = (activity: ChildActivity) => {
-        if (!activeChild) return;
-        setActiveActivity(activity);
-        setActiveView("gallery");
-    };
-
-    const backFromGalleryToCheckIn = () => {
-        setActiveView("checkIn");
-        setActiveActivity(null);
-    };
-
-    const handleCloseSuccess = () => {
-        setCheckInSuccess(null);
-        backToList();
-    };
-
-    const openCalendarFromCheckIn = () => {
-        // filtrer på barnets avdeling (pluss "hele barnehagen")
-        setCalendarDepartmentFilter(activeChild?.department ?? null);
-        setActiveView("calendar");
-    };
-
-    const backFromCalendar = () => {
-        if (activeChild) setActiveView("checkIn");
-        else setActiveView("list");
-    };
-
-    const openProfile = () => setActiveView("profile");
-
-    // ✅ Profil: bruk api.tsx (update)
-    const handleUpdateParentProfile = (profile: ParentProfile) => {
-        updateUserProfile(parentId, {
-            fullName: profile.name,
-            email: profile.email,
-            phoneNumber: profile.phone || null,
+      const withStatus = await Promise.all(
+        flat.map(async (c): Promise<StaffChildRow> => {
+          try {
+            const st = await getLatestStatusForChild(c.id);
+            const type = st.lastEventType;
+            const t = st.lastEventTime ? fmtTime(st.lastEventTime) : "";
+            if (type === "IN") return { ...c, status: "IN", note: `Inne · ${t}` };
+            if (type === "OUT") return { ...c, status: "OUT", note: `Ute · ${t}` };
+            return { ...c, status: "NONE", note: "Ingen registrering" };
+          } catch {
+            return { ...c, status: "NONE", note: "Ingen registrering" };
+          }
         })
-            .then((updated) => {
-                setParentProfile({
-                    name: updated.fullName ?? profile.name,
-                    email: updated.email ?? "",
-                    phone: updated.phoneNumber ?? "",
-                });
-                alert("Profil oppdatert.");
-            })
-            .catch((e) => {
-                console.error("Feil ved oppdatering av profil", e);
-                alert("Klarte ikke å lagre profil.");
-            });
-    };
+      );
 
-    const handleUpdateChildrenFromProfile = (updatedChildren: Child[]) => {
-        setChildren(updatedChildren);
+      withStatus.sort((a, b) => (a.groupName + a.name).localeCompare(b.groupName + b.name, "nb"));
+      setChildren(withStatus);
+    } catch (e) {
+      console.error("Feil ved henting av barn for daycare", e);
+      setChildren([]);
+      setDaycareGroups([]);
+    }
+  };
 
-        Promise.all(
-            updatedChildren.map((child) =>
-                updateChildDetailsOnServer(child).catch((e) => {
-                    console.error(`Feil ved lagring av barnedetaljer for barn ${child.id}`, e);
-                })
-            )
-        ).then(() => {});
-    };
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffId, staffName, daycareId]);
 
-    const handlePasswordReset = (newPassword: string) => {
-        changePassword(parentId, newPassword)
-            .then(() => alert("Passordet er oppdatert."))
-            .catch((e) => {
-                console.error("Feil ved endring av passord", e);
-                alert(e.message || "Klarte ikke å endre passord.");
-            });
-    };
+  const grouped = useMemo(() => {
+    const map = new Map<string, StaffChildRow[]>();
+    children.forEach((c) => {
+      const arr = map.get(c.groupName) ?? [];
+      arr.push(c);
+      map.set(c.groupName, arr);
+    });
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], "nb"));
+  }, [children]);
 
-    const displayName = parentProfile.name || parentName;
+  const toggleInOut = async (childId: number) => {
+    const row = children.find((c) => c.id === childId);
+    if (!row) return;
 
-    // ✅ Filtrer events for aktivt barn i checkin-visning
-    const eventsForActiveChild =
-        activeChild != null ? filterEventsForDepartment(calendarEvents, activeChild.department) : calendarEvents;
+    const eventType: AttendanceEventType = row.status === "IN" ? "OUT" : "IN";
 
-    // ✅ Filtrer events i full kalender hvis den ble åpnet fra checkin
-    const eventsForCalendarPage =
-        calendarDepartmentFilter != null
-            ? filterEventsForDepartment(calendarEvents, calendarDepartmentFilter)
-            : calendarEvents;
+    try {
+      await registerAttendance({
+        childId,
+        performedByUserId: staffId,
+        eventType,
+        note: "Registrert av ansatt",
+      });
+      await load();
+    } catch (e: any) {
+      console.error("Feil ved inn/ut", e);
+      alert(e?.message || "Klarte ikke å registrere inn/ut.");
+    }
+  };
 
-    return (
-        <div className="forside-root">
-            <div className="phone-frame">
-                <header className="dashboard-header">
-                    <div className="dashboard-brand">
-                        <div className="avatar-circle">T</div>
-                        <span className="brand-text">TryggINN</span>
-                    </div>
-                    <button className="text-link-button" onClick={onLogout}>
-                        Logg ut
+  const openCalendar = () => setActiveView("calendar");
+  const openProfile = () => setActiveView("profile");
+  const backToList = () => setActiveView("list");
+
+  const handleUpdateStaffProfile = (profile: StaffProfile) => {
+    updateUserProfile(staffId, {
+      fullName: profile.name,
+      email: profile.email || null,
+      phoneNumber: profile.phone || null,
+    })
+      .then((updated) => {
+        setStaffProfile({
+          name: updated.fullName ?? profile.name,
+          email: updated.email ?? "",
+          phone: updated.phoneNumber ?? "",
+        });
+        alert("Profil oppdatert.");
+      })
+      .catch((e) => {
+        console.error("Feil ved oppdatering av profil", e);
+        alert("Klarte ikke å lagre profil.");
+      });
+  };
+
+  const openRegisterChild = () => {
+    setGroupId("");
+    setGuardianEmail("");
+    setChildFirst("");
+    setChildLast("");
+    setChildDob("");
+    setShowRegisterChild(true);
+  };
+
+  const submitCreateChild = async () => {
+    if (!guardianEmail.trim()) return alert("Skriv inn foresatt sin e-post.");
+    if (!childFirst.trim() || !childLast.trim()) return alert("Fyll inn fornavn og etternavn.");
+    if (!childDob.trim()) return alert("Fyll inn fødselsdato (YYYY-MM-DD).");
+    if (groupId === "") return alert("Velg avdeling.");
+
+    try {
+      const guardian = await getUserByEmail(guardianEmail.trim());
+      if (guardian.role !== "PARENT") return alert("E-posten tilhører ikke en foresatt (PARENT).");
+
+      await createChild({
+        guardianUserId: guardian.id,
+        daycareGroupId: Number(groupId),
+        createdByUserId: staffId,
+        firstName: childFirst.trim(),
+        lastName: childLast.trim(),
+        dateOfBirth: childDob.trim(),
+      });
+
+      setShowRegisterChild(false);
+      await load();
+    } catch (e: any) {
+      alert(e?.message || "Kunne ikke registrere barn.");
+    }
+  };
+
+  const submitCreateEvent = async () => {
+    if (!evtTitle.trim()) return alert("Tittel mangler.");
+    if (!evtStart) return alert("Starttid mangler.");
+
+    try {
+      await createCalendarEvent({
+        daycareId,
+        daycareGroupId: null,
+        title: evtTitle.trim(),
+        description: evtDesc.trim() || null,
+        location: evtLoc.trim() || null,
+        startTime: toIso(evtStart),
+        endTime: evtEnd ? toIso(evtEnd) : null,
+        createdByUserId: staffId,
+      });
+
+      setShowCreateEvent(false);
+      setEvtTitle("");
+      setEvtDesc("");
+      setEvtLoc("");
+      setEvtStart("");
+      setEvtEnd("");
+      await load();
+    } catch (e: any) {
+      alert(e?.message || "Kunne ikke opprette event.");
+    }
+  };
+
+  return (
+    <div className="forside-root">
+      <div className="phone-frame">
+        <header className="staff-header">
+          <div className="staff-brand">
+            <div className="staff-avatar">{avatarLetter}</div>
+            <span className="staff-brand-text">TryggINN</span>
+          </div>
+          <button className="staff-link-button" onClick={onLogout}>
+            Logg ut
+          </button>
+        </header>
+
+        <main className="staff-main">
+          {activeView === "calendar" && <CalendarPage events={calendarEvents} onBack={backToList} />}
+
+          {activeView === "profile" && (
+            <StaffProfilePage
+              staffId={staffId}
+              staffProfile={staffProfile}
+              onUpdateStaffProfile={handleUpdateStaffProfile}
+              onBack={backToList}
+            />
+          )}
+
+          {activeView === "list" && (
+            <>
+              <section className="staff-greeting">
+                <div className="staff-greeting-row">
+                  <h1 className="staff-title">Hei {displayName}!</h1>
+
+                  <div className="staff-top-actions">
+                    <button type="button" className="staff-profile-pill" onClick={openRegisterChild}>
+                      Registrer barn
                     </button>
-                </header>
 
-                <main className={`dashboard-main ${checkInSuccess ? "dashboard-main--blurred" : ""}`}>
-                    {activeView === "calendar" && <CalendarPage events={eventsForCalendarPage} onBack={backFromCalendar} />}
+                    <button type="button" className="staff-profile-pill" onClick={openProfile}>
+                      Min profil
+                    </button>
+                  </div>
+                </div>
+              </section>
 
-                    {activeView === "profile" && (
-                        <ProfilePage
-                            parentProfile={parentProfile}
-                            onUpdateParentProfile={handleUpdateParentProfile}
-                            children={children}
-                            onUpdateChildren={handleUpdateChildrenFromProfile}
-                            onBack={backToList}
-                            onPasswordReset={handlePasswordReset}
-                        />
-                    )}
+              <section className="staff-section">
+                <h2 className="staff-section-title">Avdelinger</h2>
 
-                    {activeChild && activeView === "info" && <ChildInfoPage child={activeChild} onBack={backToList} />}
-
-                    {activeChild && activeView === "checkIn" && (
-                        <CheckInPage
-                            child={activeChild}
-                            reminderText={todayReminder ?? undefined}
-                            calendarEvents={eventsForActiveChild}
-                            onBack={backToList}
-                            onConfirm={handleConfirmCheckIn}
-                            onOpenActivity={handleOpenActivity}
-                            onOpenCalendar={openCalendarFromCheckIn}
-                        />
-                    )}
-
-                    {activeChild && activeActivity && activeView === "gallery" && (
-                        <ActivityGalleryPage child={activeChild} activity={activeActivity} onBack={backFromGalleryToCheckIn} />
-                    )}
-
-                    {!activeChild && activeView === "list" && (
-                        <>
-                            <section className="dashboard-greeting">
-                                <div className="dashboard-greeting-row">
-                                    <h1 className="dashboard-title">Hei {displayName}!</h1>
-                                    <button type="button" className="profile-link-button" onClick={openProfile}>
-                                        Min profil
-                                    </button>
-                                </div>
-                            </section>
-
-                            <section className="dashboard-section">
-                                <h2 className="dashboard-section-title">Dine barn</h2>
-
-                                {children.length === 0 ? (
-                                    <p className="dashboard-empty-text">
-                                        Du har ingen registrerte barn ennå.
-                                        <br />
-                                        Barn registreres av barnehagen. Ta kontakt med personalet dersom et barn mangler i oversikten.
-                                    </p>
-                                ) : (
-                                    <div className="children-list">
-                                        {children.map((child) => {
-                                            const isCheckedIn = child.status === "checkedIn";
-                                            const firstLetter = child.name.trim().charAt(0).toUpperCase();
-
-                                            let upcomingPickupText: string | null = null;
-                                            if (child.pickupPlans && child.pickupPlans.length > 0) {
-                                                const todayISO = new Date().toISOString().slice(0, 10);
-                                                const sorted = [...child.pickupPlans].sort((a, b) => a.date.localeCompare(b.date));
-                                                const nextPlan = sorted.find((p) => p.date >= todayISO) ?? sorted[sorted.length - 1];
-                                                const dateText = new Date(nextPlan.date).toLocaleDateString("nb-NO");
-                                                upcomingPickupText = `Henting ${dateText}: ${nextPlan.note}`;
-                                            }
-
-                                            return (
-                                                <article key={child.id} className={`child-card ${isCheckedIn ? "child-card--ok" : "child-card--alert"}`}>
-                                                    <div className="child-card-header">
-                                                        <div className="child-header-left">
-                                                            {child.photoUrl ? (
-                                                                <img src={child.photoUrl} alt={`Bilde av ${child.name}`} className="child-avatar" />
-                                                            ) : (
-                                                                <div className="child-avatar child-avatar--placeholder">{firstLetter}</div>
-                                                            )}
-                                                            <h3 className="child-name">{child.name}</h3>
-                                                        </div>
-
-                                                        <button type="button" className="child-info-button" onClick={() => openChildInfo(child)}>
-                                                            Info
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="child-card-body">
-                                                        <div>
-                                                            <p className="child-status-text">
-                                                                {child.note ??
-                                                                    (isCheckedIn ? `Krysset inn ${child.lastCheckIn ?? ""}` : "Ikke krysset inn ennå")}
-                                                            </p>
-                                                            {upcomingPickupText && <p className="child-pickup-text">{upcomingPickupText}</p>}
-                                                        </div>
-
-                                                        <button
-                                                            className={`child-action-button ${
-                                                                isCheckedIn ? "child-action-button--danger" : "child-action-button--success"
-                                                            }`}
-                                                            onClick={() => (isCheckedIn ? toggleCheckStatusDirect(child.id) : openChildCheckIn(child))}
-                                                        >
-                                                            {isCheckedIn ? "Sjekk ut" : "Sjekk inn"}
-                                                        </button>
-                                                    </div>
-                                                </article>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </section>
-
-                            <section className="dashboard-section">
-                                <button type="button" className="secondary-button full-width-secondary" onClick={openCalendarFromList}>
-                                    📅 Se barnehagens kalender
-                                </button>
-                            </section>
-                        </>
-                    )}
-                </main>
-
-                {checkInSuccess && (
-                    <div className="checkin-success-overlay">
-                        <div className="checkin-success-card">
-                            <div className="checkin-success-icon">✓</div>
-                            <p className="checkin-success-heading">{checkInSuccess.childName} er krysset inn</p>
-                            <p className="checkin-success-text">
-                                Innkryssing er registrert kl <strong>{checkInSuccess.time}</strong>
-                                {checkInSuccess.department ? `, hos ${checkInSuccess.department}` : ""}.
-                            </p>
-
-                            <button type="button" className="login-button checkin-success-button" onClick={handleCloseSuccess}>
-                                Tilbake til &quot;Dine barn&quot;
-                            </button>
+                {grouped.length === 0 ? (
+                  <p className="staff-empty-text">Ingen barn funnet.</p>
+                ) : (
+                  <div className="staff-department-list">
+                    {grouped.map(([groupName, kids]) => (
+                      <div key={groupName} className="staff-department-card">
+                        <div className="staff-department-header">
+                          <div className="staff-department-name">Avdeling {groupName}</div>
+                          <div className="staff-department-count">{kids.length} barn</div>
                         </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
 
-export default ParentDashboard;
+                        <ul className="staff-presence-list">
+                          {kids.map((k) => {
+                            const isIn = k.status === "IN";
+                            return (
+                              <li key={k.id} className="staff-presence-row">
+                                <div className="staff-presence-info">
+                                  <span className="staff-presence-name">{k.name}</span>
+                                  <span className="staff-presence-time">{k.note}</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className={`staff-presence-toggle ${
+                                    isIn ? "staff-presence-toggle--in" : "staff-presence-toggle--out"
+                                  }`}
+                                  onClick={() => toggleInOut(k.id)}
+                                >
+                                  {isIn ? "Sjekk ut" : "Sjekk inn"}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="staff-section">
+                <div className="staff-bottom-actions">
+                  <button type="button" className="secondary-button full-width-secondary" onClick={openCalendar}>
+                    📅 Se barnehagens kalender
+                  </button>
+
+                  <button type="button" className="secondary-button full-width-secondary" onClick={() => setShowCreateEvent(true)}>
+                    ➕ Legg til kalender-event
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </main>
+
+        {/* ---------- Modals ---------- */}
+
+        {showRegisterChild && (
+          <Modal title="Registrer barn" onClose={() => setShowRegisterChild(false)}>
+            <div className="form-field">
+              <label className="form-label">Foresatt e-post</label>
+              <input className="text-input" value={guardianEmail} onChange={(e) => setGuardianEmail(e.target.value)} />
+            </div>
+
+            <div className="row-gap">
+              <div className="form-field" style={{ flex: 1 }}>
+                <label className="form-label">Fornavn</label>
+                <input className="text-input" value={childFirst} onChange={(e) => setChildFirst(e.target.value)} />
+              </div>
+              <div className="form-field" style={{ flex: 1 }}>
+                <label className="form-label">Etternavn</label>
+                <input className="text-input" value={childLast} onChange={(e) => setChildLast(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Fødselsdato (YYYY-MM-DD)</label>
+              <input className="text-input" value={childDob} onChange={(e) => setChildDob(e.target.value)} placeholder="2019-03-14" />
+            </div>
+
+            {/* ✅ FIX: dropdown med ekte groupId values */}
+            <div className="form-field">
+              <label className="form-label">Avdeling</label>
+              <select
+                className="text-input"
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value === "" ? "" : Number(e.target.value))}
+              >
+                <option value="">Velg…</option>
+                {daycareGroups
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name, "nb"))
+                  .map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="modal-actions-row">
+              <button type="button" className="secondary-button full-width-secondary" onClick={() => setShowRegisterChild(false)}>
+                Avbryt
+              </button>
+              <button type="button" className="login-button modal-primary" onClick={submitCreateChild}>
+                Registrer
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {showCreateEvent && (
+          <Modal title="Legg til kalender-event" onClose={() => setShowCreateEvent(false)}>
+            <div className="form-field">
+              <label className="form-label">Tittel</label>
+              <input className="text-input" value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)} />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Beskrivelse</label>
+              <input className="text-input" value={evtDesc} onChange={(e) => setEvtDesc(e.target.value)} />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Sted</label>
+              <input className="text-input" value={evtLoc} onChange={(e) => setEvtLoc(e.target.value)} />
+            </div>
+
+            {/* ✅ FIX: Slutt under Start */}
+            <div className="form-field">
+              <label className="form-label">Start</label>
+              <input type="datetime-local" className="text-input" value={evtStart} onChange={(e) => setEvtStart(e.target.value)} />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Slutt</label>
+              <input type="datetime-local" className="text-input" value={evtEnd} onChange={(e) => setEvtEnd(e.target.value)} />
+            </div>
+
+            <div className="modal-actions-row">
+              <button type="button" className="secondary-button full-width-secondary" onClick={() => setShowCreateEvent(false)}>
+                Avbryt
+              </button>
+              <button type="button" className="login-button modal-primary" onClick={submitCreateEvent}>
+                Opprett
+              </button>
+            </div>
+          </Modal>
+        )}
+      </div>
+    </div>
+  );
+}

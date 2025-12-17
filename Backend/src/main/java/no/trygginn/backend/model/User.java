@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity som representerer en bruker i systemet.
+ */
 @Entity
 @Table(name = "users")
 public class User {
@@ -13,6 +16,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Grunnleggende brukerinfo
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
@@ -22,10 +26,12 @@ public class User {
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    // Rolle (f.eks. GUARDIAN, STAFF, ADMIN)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
 
+    // Autentisering
     @Column(name = "password_hash")
     private String passwordHash;
 
@@ -35,9 +41,11 @@ public class User {
     @Column(name = "auth_provider")
     private String authProvider;
 
+    // Opprettelsestidspunkt
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Barn brukeren er foresatt for
     @ManyToMany
     @JoinTable(
             name = "guardians_children",
@@ -46,6 +54,7 @@ public class User {
     )
     private Set<Child> children = new HashSet<>();
 
+    // Barnehager brukeren er knyttet til
     @ManyToMany
     @JoinTable(
             name = "guardians_daycare",
@@ -54,10 +63,11 @@ public class User {
     )
     private Set<Daycare> daycares = new HashSet<>();
 
+    // Tilgangskoder brukeren har opprettet
     @OneToMany(mappedBy = "createdBy")
     private Set<DaycareAccessCode> createdAccessCodes = new HashSet<>();
 
-    // Ansatt/forelder -> attendance-events de har registrert
+    // Oppmøtehendelser brukeren har registrert
     @OneToMany(mappedBy = "performedBy")
     private Set<Attendance> attendanceEvents = new HashSet<>();
 

@@ -3,6 +3,9 @@ package no.trygginn.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity som representerer inn- og utsjekk for et barn.
+ */
 @Entity
 @Table(name = "attendance")
 public class Attendance {
@@ -11,24 +14,30 @@ public class Attendance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Barnet hendelsen gjelder
     @ManyToOne(optional = false)
     @JoinColumn(name = "child_id")
     private Child child;
 
+    // Type hendelse (IN / OUT)
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)
     private AttendanceEventType eventType;
 
+    // Tidspunkt for inn- eller utsjekk
     @Column(name = "event_time", nullable = false)
     private LocalDateTime eventTime;
 
+    // Eventuell kommentar
     @Column(name = "note")
     private String note;
 
+    // Brukeren som utførte handlingen
     @ManyToOne(optional = false)
     @JoinColumn(name = "performed_by_user_id")
     private User performedBy;
 
+    // Tidspunkt for opprettelse
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 

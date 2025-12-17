@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Entity som representerer ferie for et barn.
+ */
 @Entity
 @Table(name = "vacation")
 public class Vacation {
@@ -12,23 +15,27 @@ public class Vacation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Barnet ferien gjelder
     @ManyToOne(optional = false)
     @JoinColumn(name = "child_id")
     private Child child;
 
+    // Brukeren som rapporterte ferien
     @ManyToOne(optional = false)
     @JoinColumn(name = "reported_by_user_id")
     private User reportedBy;
 
+    // Ferieperiode
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column
+    // Eventuell kommentar
     private String note;
 
+    // Opprettelsestidspunkt
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

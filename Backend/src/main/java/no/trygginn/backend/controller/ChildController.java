@@ -1,4 +1,5 @@
 package no.trygginn.backend.controller;
+
 import no.trygginn.backend.model.Child;
 import no.trygginn.backend.controller.dto.CreateChildRequest;
 import no.trygginn.backend.controller.dto.ChildResponse;
@@ -10,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST-controller for håndtering av barn.
+ */
 @RestController
 @RequestMapping("/api/children")
 public class ChildController {
@@ -20,17 +24,28 @@ public class ChildController {
         this.childService = childService;
     }
 
-
+    /**
+     * Oppretter et nytt barn.
+     */
     @PostMapping
-    public ResponseEntity<ChildResponse> createChild(@RequestBody CreateChildRequest request) {
+    public ResponseEntity<ChildResponse> createChild(
+            @RequestBody CreateChildRequest request
+    ) {
+
         Child child = childService.createChild(request);
         return ResponseEntity.ok(toResponse(child));
     }
 
-
+    /**
+     * Henter alle barn knyttet til en foresatt.
+     */
     @GetMapping("/guardian/{guardianId}")
-    public ResponseEntity<List<ChildResponse>> getChildrenForGuardian(@PathVariable Long guardianId) {
+    public ResponseEntity<List<ChildResponse>> getChildrenForGuardian(
+            @PathVariable Long guardianId
+    ) {
+
         List<Child> children = childService.getChildrenForGuardian(guardianId);
+
         List<ChildResponse> responseList = children.stream()
                 .map(this::toResponse)
                 .toList();
@@ -38,14 +53,23 @@ public class ChildController {
         return ResponseEntity.ok(responseList);
     }
 
-
+    /**
+     * Henter informasjon om ett barn.
+     */
     @GetMapping("/{childId}")
-    public ResponseEntity<ChildResponse> getChild(@PathVariable Long childId) {
+    public ResponseEntity<ChildResponse> getChild(
+            @PathVariable Long childId
+    ) {
+
         Child child = childService.getChildById(childId);
         return ResponseEntity.ok(toResponse(child));
     }
 
+    /**
+     * Mapper Child-entity til respons-DTO.
+     */
     private ChildResponse toResponse(Child child) {
+
         DaycareGroup group = child.getDaycareGroup();
         Daycare daycare = group != null ? group.getDaycare() : null;
 

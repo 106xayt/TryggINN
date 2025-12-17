@@ -1,8 +1,11 @@
 package no.trygginn.backend.controller.dto;
 
+import org.springframework.lang.Nullable;
 
-public record UseAccessCodeResponse(
-        Long daycareId,
-        String daycareName,
-        String message
+/**
+ * DTO for bruk av tilgangskode.
+ */
+public record UseAccessCodeRequest(
+        String code,
+        @Nullable Long guardianUserId
 ) {}

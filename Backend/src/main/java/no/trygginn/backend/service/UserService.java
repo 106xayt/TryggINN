@@ -6,23 +6,42 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for håndtering av brukere.
+ */
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Henter bruker basert på ID.
+     */
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Fant ikke bruker med id " + id));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Fant ikke bruker med id " + id));
     }
 
-    public User updateUserProfile(Long id, String fullName, String email, String phoneNumber) {
+    /**
+     * Oppdaterer brukerprofil.
+     */
+    public User updateUserProfile(
+            Long id,
+            String fullName,
+            String email,
+            String phoneNumber
+    ) {
+
         User user = getUserById(id);
 
         if (fullName != null && !fullName.isBlank()) {
@@ -32,7 +51,8 @@ public class UserService {
         if (email != null && !email.isBlank()) {
             String normalized = email.trim();
 
-            if (user.getEmail() == null || !normalized.equalsIgnoreCase(user.getEmail())) {
+            if (user.getEmail() == null
+                    || !normalized.equalsIgnoreCase(user.getEmail())) {
                 if (userRepository.existsByEmail(normalized)) {
                     throw new IllegalArgumentException("E-postadressen er allerede i bruk.");
                 }
@@ -49,14 +69,22 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Endrer passord for bruker.
+     */
     @Transactional
-    public void changePassword(Long userId, String currentPassword, String newPassword) {
+    public void changePassword(
+            Long userId,
+            String currentPassword,
+            String newPassword
+    ) {
+
         User user = getUserById(userId);
 
-        // Hvis currentPassword er sendt inn og ikke tom -> verifiser
+        // Verifiserer gammelt passord hvis det er oppgitt
         if (currentPassword != null && !currentPassword.isBlank()) {
-            if (user.getPasswordHash() == null ||
-                    !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            if (user.getPasswordHash() == null
+                    || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
                 throw new IllegalArgumentException("Gammelt passord er feil.");
             }
         }
@@ -69,18 +97,23 @@ public class UserService {
             throw new IllegalArgumentException("Nytt passord må være minst 6 tegn.");
         }
 
-        String encoded = passwordEncoder.encode(newPassword);
-        user.setPasswordHash(encoded);
-
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
+    /**
+     * Henter bruker basert på e-post.
+     */
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
+
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("E-post kan ikke være tom.");
         }
-        return userRepository.findByEmail(email.trim().toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("Fant ingen bruker med denne e-posten."));
-    }
 
+        return userRepository
+                .findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Fant ingen bruker med denne e-posten."));
+    }
 }

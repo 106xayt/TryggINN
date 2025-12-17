@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity som representerer en gruppe i en barnehage.
+ */
 @Entity
 @Table(name = "daycare_group")
 public class DaycareGroup {
@@ -13,18 +16,22 @@ public class DaycareGroup {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Barnehagen gruppen tilhører
     @ManyToOne(optional = false)
     @JoinColumn(name = "daycare_id")
     private Daycare daycare;
 
+    // Navn på gruppen
     @Column(nullable = false)
     private String name;
 
     private String description;
 
+    // Opprettelsestidspunkt
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Barn i gruppen
     @OneToMany(mappedBy = "daycareGroup")
     private Set<Child> children = new HashSet<>();
 

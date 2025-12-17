@@ -2,7 +2,9 @@ package no.trygginn.backend.controller.dto;
 
 import java.time.LocalDateTime;
 
-
+/**
+ * DTO for opprettelse av tilgangskode.
+ */
 public record CreateAccessCodeRequest(
         Long daycareId,
         Long createdByUserId,

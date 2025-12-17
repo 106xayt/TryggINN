@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Service for håndtering av ferie.
+ */
 @Service
 public class VacationService {
 
@@ -19,20 +22,27 @@ public class VacationService {
     private final ChildRepository childRepository;
     private final UserRepository userRepository;
 
-    public VacationService(VacationRepository vacationRepository,
-                           ChildRepository childRepository,
-                           UserRepository userRepository) {
+    public VacationService(
+            VacationRepository vacationRepository,
+            ChildRepository childRepository,
+            UserRepository userRepository
+    ) {
         this.vacationRepository = vacationRepository;
         this.childRepository = childRepository;
         this.userRepository = userRepository;
     }
 
+    /**
+     * Registrerer ferie for et barn.
+     */
     @Transactional
-    public Vacation registerVacation(Long childId,
-                                     Long reportedByUserId,
-                                     LocalDate startDate,
-                                     LocalDate endDate,
-                                     String note) {
+    public Vacation registerVacation(
+            Long childId,
+            Long reportedByUserId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String note
+    ) {
 
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException("Start- og sluttdato må være satt.");
@@ -46,7 +56,8 @@ public class VacationService {
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke barn."));
 
         User reportedBy = userRepository.findById(reportedByUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Finner ikke bruker som registrerer ferie."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Finner ikke bruker som registrerer ferie."));
 
         Vacation vacation = new Vacation();
         vacation.setChild(child);
@@ -58,6 +69,9 @@ public class VacationService {
         return vacationRepository.save(vacation);
     }
 
+    /**
+     * Henter alle ferier for et barn.
+     */
     @Transactional(readOnly = true)
     public List<Vacation> getVacationsForChild(Long childId) {
         return vacationRepository.findByChild_Id(childId);

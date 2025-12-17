@@ -1,4 +1,5 @@
 package no.trygginn.backend.service;
+
 import no.trygginn.backend.model.Child;
 import no.trygginn.backend.model.Attendance;
 import no.trygginn.backend.model.AttendanceEventType;
@@ -13,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * Service for håndtering av inn- og utsjekk (oppmøte).
+ */
 @Service
 public class AttendanceService {
 
@@ -20,20 +24,26 @@ public class AttendanceService {
     private final ChildRepository childRepository;
     private final UserRepository userRepository;
 
-    public AttendanceService(AttendanceRepository attendanceRepository,
-                             ChildRepository childRepository,
-                             UserRepository userRepository) {
+    public AttendanceService(
+            AttendanceRepository attendanceRepository,
+            ChildRepository childRepository,
+            UserRepository userRepository
+    ) {
         this.attendanceRepository = attendanceRepository;
         this.childRepository = childRepository;
         this.userRepository = userRepository;
     }
 
-
+    /**
+     * Registrerer en inn- eller utsjekk for et barn.
+     */
     @Transactional
-    public Attendance registerEvent(Long childId,
-                                    Long performedByUserId,
-                                    AttendanceEventType eventType,
-                                    String note) {
+    public Attendance registerEvent(
+            Long childId,
+            Long performedByUserId,
+            AttendanceEventType eventType,
+            String note
+    ) {
 
         Child child = childRepository.findById(childId)
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke barn."));
@@ -41,7 +51,7 @@ public class AttendanceService {
         User performer = userRepository.findById(performedByUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Finner ikke bruker som utfører handlingen."));
 
-
+        // Sjekker at brukeren har lov til å registrere oppmøte
         if (performer.getRole() != UserRole.PARENT
                 && performer.getRole() != UserRole.STAFF
                 && performer.getRole() != UserRole.ADMIN) {
@@ -58,9 +68,12 @@ public class AttendanceService {
         return attendanceRepository.save(attendance);
     }
 
-
+    /**
+     * Henter siste registrerte oppmøtehendelse for et barn.
+     */
     @Transactional(readOnly = true)
     public Optional<Attendance> getLatestEventForChild(Long childId) {
-        return attendanceRepository.findTop1ByChild_IdOrderByEventTimeDesc(childId);
+        return attendanceRepository
+                .findTop1ByChild_IdOrderByEventTimeDesc(childId);
     }
 }

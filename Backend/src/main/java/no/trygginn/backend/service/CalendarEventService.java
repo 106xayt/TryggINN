@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Service for håndtering av kalenderhendelser.
+ */
 @Service
 @RequiredArgsConstructor
 public class CalendarEventService {
@@ -20,6 +23,9 @@ public class CalendarEventService {
     private final DaycareGroupRepository daycareGroupRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Oppretter en ny kalenderhendelse.
+     */
     public CalendarEvent createEvent(
             Long daycareId,
             Long daycareGroupId,
@@ -30,9 +36,11 @@ public class CalendarEventService {
             LocalDateTime endTime,
             Long createdByUserId
     ) {
+
         User user = userRepository.findById(createdByUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Kun ansatte/admin kan opprette hendelser
         if (user.getRole() == UserRole.PARENT) {
             throw new RuntimeException("Parents cannot create calendar events");
         }
@@ -59,6 +67,9 @@ public class CalendarEventService {
         return calendarEventRepository.save(event);
     }
 
+    /**
+     * Oppdaterer en eksisterende kalenderhendelse.
+     */
     public CalendarEvent updateEvent(
             Long eventId,
             String title,
@@ -68,9 +79,11 @@ public class CalendarEventService {
             LocalDateTime endTime,
             Long updatedByUserId
     ) {
+
         User user = userRepository.findById(updatedByUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Foreldre kan ikke endre hendelser
         if (user.getRole() == UserRole.PARENT) {
             throw new RuntimeException("Parents cannot update calendar events");
         }
@@ -87,10 +100,15 @@ public class CalendarEventService {
         return calendarEventRepository.save(event);
     }
 
+    /**
+     * Sletter en kalenderhendelse.
+     */
     public void deleteEvent(Long eventId, Long deletedByUserId) {
+
         User user = userRepository.findById(deletedByUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Foreldre kan ikke slette hendelser
         if (user.getRole() == UserRole.PARENT) {
             throw new RuntimeException("Parents cannot delete calendar events");
         }
@@ -101,24 +119,35 @@ public class CalendarEventService {
         calendarEventRepository.delete(event);
     }
 
+    /**
+     * Henter alle kalenderhendelser for en barnehage.
+     */
     public List<CalendarEvent> getEventsForDaycare(Long daycareId) {
-        return calendarEventRepository.findByDaycare_IdOrderByStartTimeAsc(daycareId);
+        return calendarEventRepository
+                .findByDaycare_IdOrderByStartTimeAsc(daycareId);
     }
 
+    /**
+     * Henter relevante kalenderhendelser for en foresatt.
+     */
     public List<CalendarEvent> getEventsForGuardian(Long guardianId) {
+
         User guardian = userRepository.findById(guardianId)
                 .orElseThrow(() -> new RuntimeException("Guardian not found"));
 
+        // Antar at foresatt er knyttet til én barnehage
         Long daycareId = guardian.getDaycares().stream()
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Guardian not linked to daycare"))
                 .getId();
 
+        // Grupper barnet tilhører
         List<DaycareGroup> groups = guardian.getChildren().stream()
                 .map(Child::getDaycareGroup)
                 .distinct()
                 .toList();
 
-        return calendarEventRepository.findRelevantForGuardian(daycareId, groups);
+        return calendarEventRepository
+                .findRelevantForGuardian(daycareId, groups);
     }
 }

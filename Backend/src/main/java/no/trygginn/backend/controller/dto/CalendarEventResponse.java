@@ -6,6 +6,9 @@ import no.trygginn.backend.model.CalendarEvent;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO for kalenderhendelser som sendes til frontend.
+ */
 @Data
 @Builder
 public class CalendarEventResponse {
@@ -20,9 +23,11 @@ public class CalendarEventResponse {
 
     private Long daycareId;
     private Long daycareGroupId;
-
     private String daycareGroupName;
 
+    /**
+     * Mapper et CalendarEvent-objekt til en respons-DTO.
+     */
     public static CalendarEventResponse from(CalendarEvent event) {
         return CalendarEventResponse.builder()
                 .id(event.getId())

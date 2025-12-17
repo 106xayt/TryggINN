@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity som representerer et barn.
+ */
 @Entity
 @Table(name = "children")
 public class Child {
@@ -13,30 +16,35 @@ public class Child {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Barnets navn
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
     @Column(name = "last_name")
     private String lastName;
 
+    // Fødselsdato
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    // Barnehagegruppe barnet tilhører
     @ManyToOne
     @JoinColumn(name = "daycare_group_id")
     private DaycareGroup daycareGroup;
 
+    // Foresatte knyttet til barnet
     @ManyToMany(mappedBy = "children")
     private Set<User> guardians = new HashSet<>();
 
+    // Om barnet er aktivt
     @Column(nullable = false)
     private boolean active = true;
 
+    // Opprettelsesdato
     @Column(name = "created_at", nullable = false)
     private LocalDate createdAt = LocalDate.now();
 
-
-
+    // Helse- og tilleggsinformasjon
     @Column(name = "allergies")
     private String allergies;
 
@@ -46,6 +54,7 @@ public class Child {
     @Column(name = "favorite_food")
     private String favoriteFood;
 
+    // Internt notat om barnet
     @Column(name = "note")
     private String note;
 
@@ -124,6 +133,7 @@ public class Child {
     public void setFavoriteFood(String favoriteFood) {
         this.favoriteFood = favoriteFood;
     }
+
     public String getNote() {
         return note;
     }
@@ -131,5 +141,4 @@ public class Child {
     public void setNote(String note) {
         this.note = note;
     }
-
 }

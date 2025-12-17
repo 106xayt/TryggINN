@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST-controller for barnehagegrupper.
+ */
 @RestController
 @RequestMapping("/api/daycare-groups")
 public class DaycareGroupController {
@@ -20,12 +23,16 @@ public class DaycareGroupController {
         this.daycareGroupService = daycareGroupService;
     }
 
-
+    /**
+     * Henter alle grupper for en barnehage.
+     */
     @GetMapping("/daycare/{daycareId}")
     public ResponseEntity<List<DaycareGroupResponse>> getGroupsForDaycare(
             @PathVariable Long daycareId
     ) {
-        List<DaycareGroup> groups = daycareGroupService.getGroupsForDaycare(daycareId);
+
+        List<DaycareGroup> groups =
+                daycareGroupService.getGroupsForDaycare(daycareId);
 
         List<DaycareGroupResponse> response = groups.stream()
                 .map(this::toResponse)
@@ -34,11 +41,14 @@ public class DaycareGroupController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Mapper DaycareGroup-entity til respons-DTO.
+     */
     private DaycareGroupResponse toResponse(DaycareGroup group) {
+
         Daycare daycare = group.getDaycare();
 
-        var children = group.getChildren()
-                .stream()
+        var children = group.getChildren().stream()
                 .map(c -> new StaffChildResponse(
                         c.getId(),
                         c.getFirstName(),

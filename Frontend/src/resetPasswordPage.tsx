@@ -1,7 +1,8 @@
-import { type FormEvent, useState } from "react";
-import "./forside.css";
-import { useThemeLanguage } from "./ThemeLanguageContext";
+import { type FormEvent, useState } from "react"; // React hooks + type for submit-event
+import "./forside.css"; // styling for layout/kort/knapper
+import { useThemeLanguage } from "./ThemeLanguageContext"; // henter valgt språk (nb/en)
 
+// Props: barnehagenavn til visning + callback for å gå tilbake
 interface ResetPasswordPageProps {
   barnehageNavn: string;
   onBack: () => void;
@@ -11,13 +12,18 @@ const ResetPasswordPage = ({
   barnehageNavn,
   onBack,
 }: ResetPasswordPageProps) => {
+  // State for e-postfeltet
   const [email, setEmail] = useState("");
+
+  // Språkvalg fra context
   const { language } = useThemeLanguage();
   const isNb = language === "nb";
 
+  // Kjøres når brukeren sender inn skjemaet
   const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // hindrer refresh
 
+    // Lager payload som backend senere kan bruke
     const payload = { email, barnehageNavn };
     console.log("RESET PASSORD payload:", payload);
 
@@ -25,6 +31,7 @@ const ResetPasswordPage = ({
     // await api.requestPasswordReset(payload)
   };
 
+  // Tekster som bytter mellom norsk/engelsk
   const titleTop = isNb ? "Reset passord" : "Reset password";
   const subTitle = isNb
     ? "Send nytt passord-lenke"
@@ -37,6 +44,7 @@ const ResetPasswordPage = ({
   return (
     <div className="forside-root">
       <div className="phone-frame">
+        {/* Logo/header */}
         <header className="forside-header small-header">
           <div className="logo-box">
             <span className="logo-letter">T</span>
@@ -44,6 +52,7 @@ const ResetPasswordPage = ({
         </header>
 
         <main className="forside-main">
+          {/* Topptekst + barnehagenavn */}
           <section className="welcome-section small-welcome">
             <h1 className="welcome-title">
               {titleTop}
@@ -52,10 +61,12 @@ const ResetPasswordPage = ({
             </h1>
           </section>
 
+          {/* Kort med skjema for å be om passord-reset */}
           <section className="form-card">
             <h2 className="form-title">{subTitle}</h2>
 
             <form onSubmit={handleSubmit} className="form">
+              {/* E-post input */}
               <div className="form-field">
                 <label className="form-label">{emailLabel}</label>
                 <input
@@ -68,11 +79,13 @@ const ResetPasswordPage = ({
                 />
               </div>
 
+              {/* Submit-knapp */}
               <button type="submit" className="login-button form-submit">
                 {submitText}
               </button>
             </form>
 
+            {/* Tilbake-knapp */}
             <button type="button" className="helper-link" onClick={onBack}>
               {backText}
             </button>
@@ -83,4 +96,4 @@ const ResetPasswordPage = ({
   );
 };
 
-export default ResetPasswordPage;
+export default ResetPasswordPage; // eksporter komponenten så den kan brukes i appen

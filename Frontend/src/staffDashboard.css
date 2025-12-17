@@ -321,7 +321,43 @@
     padding: 16px;
 }
 
+/* Staff "pill" som ligner parent sin profile-link-button */
+.staff-greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
 
+.staff-profile-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Modal card styling for staff (bruker overlay/card du allerede har) */
+.staff-modal-card {
+  background: #ffffff; /* ikke grønn success */
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+}
+
+.staff-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.staff-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
 /* Liten fade-in når ansatt-dashboard vises */
 
 .phone-frame {
@@ -338,3 +374,4 @@
     transform: translateY(0);
   }
 }
+

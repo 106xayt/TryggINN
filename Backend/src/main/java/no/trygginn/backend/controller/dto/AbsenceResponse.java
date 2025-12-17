@@ -2,6 +2,9 @@ package no.trygginn.backend.controller.dto;
 
 import java.time.LocalDate;
 
+/**
+ * DTO for respons ved henting av fravær.
+ */
 public record AbsenceResponse(
         Long id,
         Long childId,

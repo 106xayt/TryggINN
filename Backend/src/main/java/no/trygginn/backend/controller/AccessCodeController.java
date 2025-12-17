@@ -10,6 +10,9 @@ import no.trygginn.backend.service.AccessCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST-controller for håndtering av tilgangskoder.
+ */
 @RestController
 @RequestMapping("/api/access-codes")
 public class AccessCodeController {
@@ -20,30 +23,39 @@ public class AccessCodeController {
         this.accessCodeService = accessCodeService;
     }
 
-
+    /**
+     * Bruker en tilgangskode for å hente eller koble til en barnehage.
+     */
     @PostMapping("/use")
-    public ResponseEntity<UseAccessCodeResponse> useAccessCode(
-            @RequestBody UseAccessCodeRequest request
-    ) {
+    public ResponseEntity<UseAccessCodeResponse> useAccessCode(@RequestBody UseAccessCodeRequest request) {
+
         Daycare daycare = accessCodeService.useAccessCode(
                 request.code(),
                 request.guardianUserId()
         );
 
+        String message = (request.guardianUserId() == null)
+                ? "Koden er gyldig."
+                : "Koden ble brukt og du er nå koblet til barnehagen.";
+
         UseAccessCodeResponse response = new UseAccessCodeResponse(
                 daycare.getId(),
                 daycare.getName(),
-                "Koden ble brukt og du er nå koblet til barnehagen."
+                message
         );
 
         return ResponseEntity.ok(response);
     }
 
-
+    /**
+     * Oppretter en ny tilgangskode for en barnehage.
+     */
     @PostMapping
     public ResponseEntity<CreateAccessCodeResponse> createAccessCode(
             @RequestBody CreateAccessCodeRequest request
     ) {
+
+        // Setter standardverdi hvis maxUses ikke er oppgitt
         int maxUses = request.maxUses() != null ? request.maxUses() : 100;
 
         DaycareAccessCode accessCode = accessCodeService.createAccessCode(
