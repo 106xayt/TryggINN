@@ -334,6 +334,16 @@
 .app-root.theme-dark .small-welcome .welcome-title {
   color: #e5e7eb;
 }
+/* Sørg for at appen alltid dekker hele skjermen */
+.app-root {
+    min-height: 100vh;
+}
+
+/* Mørk bakgrunn bak "phone-frame" når dark theme er aktiv */
+.app-root.theme-dark {
+    background: #0b1220;
+}
+
 
 
 

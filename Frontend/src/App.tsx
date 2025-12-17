@@ -122,9 +122,7 @@ export default function App() {
   };
 
   // Navigasjon for ansatt-sider
-  const goToStaffRegisterChild = () => setView("staffRegisterChild");
-  const goToStaffCreateCalendarEvent = () => setView("staffCreateCalendarEvent");
-  const goToStaffProfile = () => setView("staffProfile");
+
   const backToStaffDashboard = () => setView("staffDashboard");
 
   // Fallback hvis daycareId ikke er satt (kan brukes i dev/demo)
@@ -161,35 +159,32 @@ export default function App() {
         <ResetPasswordPage barnehageNavn={barnehageNavn || "Barnehage"} onBack={backToWelcome} />
       )}
 
-      // Parent-dashboard vises kun hvis parentId finnes
+        {/* Parent-dashboard vises kun hvis parentId finnes*/}
       {view === "parentDashboard" && parentId != null && (
         <ParentDashboard parentId={parentId} parentName={parentName} onLogout={handleLogoutToWelcome} />
       )}
 
-      // Staff-dashboard vises kun hvis staffId finnes
+        {/*Staff-dashboard vises kun hvis staffId finnes*/}
       {view === "staffDashboard" && staffId != null && (
-        <StaffDashboard
-          staffId={staffId}
-          staffName={staffName}
-          daycareId={effectiveDaycareId}
-          onLogout={handleLogoutToWelcome}
-          onRegisterChild={goToStaffRegisterChild}
-          onCreateCalendarEvent={goToStaffCreateCalendarEvent}
-          onOpenProfile={goToStaffProfile}
-        />
+          <StaffDashboard
+              staffId={staffId}
+              staffName={staffName}
+              daycareId={effectiveDaycareId}
+              onLogout={handleLogoutToWelcome}
+          />
       )}
 
-      // Inline-side: registrer barn
+        {/*Inline-side: registrer barn*/}
       {view === "staffRegisterChild" && staffId != null && (
         <StaffRegisterChildInline staffId={staffId} daycareId={effectiveDaycareId} onBack={backToStaffDashboard} />
       )}
 
-      // Inline-side: opprett kalender-event
+        {/*Inline-side: opprett kalender-event*/}
       {view === "staffCreateCalendarEvent" && staffId != null && (
         <StaffCreateCalendarEventInline staffId={staffId} daycareId={effectiveDaycareId} onBack={backToStaffDashboard} />
       )}
 
-      // Inline-side: profil
+        {/*Inline-side: profil*/}
       {view === "staffProfile" && staffId != null && (
         <StaffProfileInline userId={staffId} onBack={backToStaffDashboard} />
       )}

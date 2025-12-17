@@ -1,4 +1,7 @@
 Hvordan kjøre backend:
+Add pom.xml as maven project hvis det ikke er
+
+
 docker compose up --build
 
 Hvordan lukke backend (containers):
